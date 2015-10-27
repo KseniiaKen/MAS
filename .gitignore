@@ -1,0 +1,13 @@
+Agent/bin/*
+Agent/obj/*
+AgentManagementSystemForm/VisualSimulation/bin/*
+AgentManagementSystem.v11.suo
+VisualSimulation/obj/Debug/*
+AgentManagementSystemForm/Agent/bin/*
+AgentManagementSystemForm/Agent/obj/*
+AgentManagementSystemForm/CoreAMS/bin/*
+AgentManagementSystemForm/CoreAMS/obj/*
+AgentManagementSystemForm/VisualSimulation/obj/*
+CoreAMS/bin/*
+CoreAMS/obj/*
+VisualSimulation/bin/*
