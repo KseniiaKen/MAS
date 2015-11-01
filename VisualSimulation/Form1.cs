@@ -34,7 +34,8 @@ namespace VisualSimulation
             p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000)); // добавляем здоровых агентов
 
             GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
-           // Containers.Instance.Add.startAgentsThread.Start(); // в отдельном потоке запускаем всех агентов
+            //Containers.Instance.Add.
+            startAgentsThread.Start(); // в отдельном потоке запускаем всех агентов
             timer1.Start(); // запускаем счетчик времени, для обновления окошка (ко времени системы не имеет никакого отношения)
 
             button1.Enabled = false;
