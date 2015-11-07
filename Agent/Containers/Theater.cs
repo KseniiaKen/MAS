@@ -9,7 +9,7 @@ namespace Agent.Containers
 {
     public class Theater : ContainersCore
     {
-        public Theater(double area, double dencity) : base(Enums.ContainerType.Theater, area, dencity)
+        public Theater(double area, double dencity) : base(Enums.ContainerType.Theater, area, dencity) //base — вызов конструктора наследуемого класса
         { 
             
         }
