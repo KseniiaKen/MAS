@@ -13,6 +13,7 @@ using CoreAMS.AgentCore;
 using CoreAMS;
 using Agent;
 using CoreAMS.Global;
+using Agent.Containers;
 
 namespace VisualSimulation
 {
@@ -34,7 +35,22 @@ namespace VisualSimulation
             p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000)); // добавляем здоровых агентов
 
             GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
-            //Containers.Instance.Add.
+
+            Theater theater = new Theater(356, 23);
+            Containers.Instance.Add(theater); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
+
+            Mall mall = new Mall(578, 90);
+            Containers.Instance.Add(mall);
+
+            Home home = new Home(200, 12);
+            Containers.Instance.Add(home);
+
+            Hospital hospital = new Hospital(237, 19);
+            Containers.Instance.Add(hospital);
+
+            Office office = new Office(100, 20);
+            Containers.Instance.Add(office);
+
             startAgentsThread.Start(); // в отдельном потоке запускаем всех агентов
             timer1.Start(); // запускаем счетчик времени, для обновления окошка (ко времени системы не имеет никакого отношения)
 
@@ -49,6 +65,8 @@ namespace VisualSimulation
             label2.Text = AgentManagementSystem.exposedAgentsCount.ToString();
             label3.Text = AgentManagementSystem.infectiousAgentsCount.ToString();
             label4.Text = AgentManagementSystem.recoveredAgentsCount.ToString();
+            label12.Text = AgentManagementSystem.funeralAgentsCount.ToString();
+            label11.Text = AgentManagementSystem.deadAgentsCount.ToString();
         }
 
         // События, которые происходят при нажатии на кнопку Stop

@@ -18,10 +18,13 @@ namespace CoreAMS
         // Перечисление всех состояний здоровья агента
         public enum HealthState
         {
-            Susceptible = 0,
-            Exposed = 1,
-            Infectious = 2,
-            Recovered = 3
+            Susceptible,
+            Exposed,
+            Infectious,
+            Funeral,
+            Dead,
+            Recovered
+
         }
 
         // Типы сообщений, которые могут передаваться между агентами

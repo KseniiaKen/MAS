@@ -12,14 +12,19 @@ namespace Agent
 {
     public class Person : AbstractPerson
     {
+        private const double FUNERAL_PROBABILITY = 0.2; //TODO: может, вероятность должна зависеть от возрастных категорий?
+        private const double DEATH_PROBABILITY = 0.05;
+        private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
-        private bool isInfected = false;               // true, если агента инфицировали
+        private bool isBeingInfected = false;          // true, если пошёл процесс заражения; после того, как заразился, true заменяетс на false.
 
         // Время протекания каждой стадии и время заражения других людей
         private int exposedTime = 2 * Enums.HoursDay;
         private int infectiousTime = 7 * Enums.HoursDay;
         private int recoveredTime = 4 * Enums.HoursWeek;
+        private int funeralTime = 3 * Enums.HoursDay;
+
         private int infectedOtherAgentTime = 24; // частота чаражения других людей (например, заражать кого-либо каждые 10 часов)
 
         // создаётся агент, которому задаются ID, состояние здоровья
@@ -85,63 +90,75 @@ namespace Agent
             if (message.message == Enums.MessageType.Infected.ToString() &&
                 healthState == Enums.HealthState.Susceptible)
             {
-                isInfected = true;
+                isBeingInfected = true;
             }
         }
 
         // Запуск агента
         public override void Run()
         {
-            // Susceptible
-            if (healthState == Enums.HealthState.Susceptible)
+            switch(healthState)
             {
-                // Агент заражается
-                if (isInfected)
-                {
-                    SetHealthState(Enums.HealthState.Exposed);
-                    changeTime = GlobalTime.Time + exposedTime;
-                    isInfected = false;
-                }
-                return;
-            }
+                case Enums.HealthState.Susceptible:
+                    // Агент заражается
+                    if (isBeingInfected)
+                    {
+                        SetHealthState(Enums.HealthState.Exposed);
+                        changeTime = GlobalTime.Time + exposedTime;
+                        isBeingInfected = false;
+                    }
+                    break;
+                case Enums.HealthState.Exposed:
+                    // Когда наступает время, агент переходит в состояние Infectious
+                    if (GlobalTime.Time == changeTime)
+                    {
+                        SetHealthState(Enums.HealthState.Infectious);
+                        changeTime = GlobalTime.Time + infectiousTime;
+                    }
+                    break;
+                case Enums.HealthState.Infectious:
+                    // Заражаем кого-либо каждые ? часов
+                    if ((changeTime - GlobalTime.Time) % infectedOtherAgentTime == 0)
+                        SendMessage();
 
-            // Exposed
-            if (healthState == Enums.HealthState.Exposed)
-            {
-                // Когда наступает время, агент переходит в состояние Infectious
-                if (GlobalTime.Time == changeTime)
-                {
-                    SetHealthState(Enums.HealthState.Infectious);
-                    changeTime = GlobalTime.Time + infectiousTime;
-                }
-                return;
-            }
-            
-            // Infectious
-            if (healthState == Enums.HealthState.Infectious)
-            {
-                // Заражаем кого-либо каждые ? часов
-                if ((changeTime - GlobalTime.Time) % infectedOtherAgentTime == 0)
-                    SendMessage();
+                    // Когда наступает время, агент переходит в состояние Recovered
+                    if (GlobalTime.Time == changeTime)
+                    {   //может умереть, а не выздороветь:
 
-                // Когда наступает время, агент переходит в состояние Recovered
-                if (GlobalTime.Time == changeTime)
-                {
-                    SetHealthState(Enums.HealthState.Recovered);
-                    changeTime = GlobalTime.Time + recoveredTime;
-                }
-                return;
-            }
-
-            // Recovered
-            if (healthState == Enums.HealthState.Recovered)
-            {
-                // Когда наступает время, агент переходит в состояние Susceptible
-                if (GlobalTime.Time == changeTime)
-                {
-                    SetHealthState(Enums.HealthState.Susceptible);
-                }
-                return;
+                        if (r.Next(0, 99) >= 100 * FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
+                        {
+                            SetHealthState(Enums.HealthState.Recovered);
+                            changeTime = GlobalTime.Time + recoveredTime;
+                        }
+                        else
+                        {
+                            SetHealthState(Enums.HealthState.Funeral);
+                            changeTime = GlobalTime.Time + funeralTime;
+                        }
+                        
+                    }
+                    break;
+                case Enums.HealthState.Funeral:
+                    if (GlobalTime.Time == changeTime)
+                    {
+                        int n = r.Next(0, 99);
+                        if (n >= 100 * DEATH_PROBABILITY)
+                        {
+                            SetHealthState(Enums.HealthState.Dead);
+                        }
+                        else
+                        {
+                            changeTime = GlobalTime.Time - 1;
+                        }
+                    }
+                    break;
+                case Enums.HealthState.Recovered:
+                    // Когда наступает время, агент переходит в состояние Susceptible
+                    if (GlobalTime.Time == changeTime)
+                    {
+                        SetHealthState(Enums.HealthState.Susceptible);
+                    }
+                    break;
             }
         }
 

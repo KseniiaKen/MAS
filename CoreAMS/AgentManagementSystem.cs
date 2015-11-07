@@ -93,6 +93,8 @@ namespace CoreAMS.AgentManagementSystem
         public static int exposedAgentsCount;
         public static int infectiousAgentsCount;
         public static int recoveredAgentsCount;
+        public static int funeralAgentsCount;
+        public static int deadAgentsCount;
 
         // Запуск всех агентов
         public static void RunAgents()
@@ -128,6 +130,8 @@ namespace CoreAMS.AgentManagementSystem
                 exposedAgentsCount = agents.Count(a => ((AgentCore.AbstractPerson)a).GetHealthState() == Enums.HealthState.Exposed);
                 infectiousAgentsCount = agents.Count(a => ((AgentCore.AbstractPerson)a).GetHealthState() == Enums.HealthState.Infectious);
                 recoveredAgentsCount = agents.Count(a => ((AgentCore.AbstractPerson)a).GetHealthState() == Enums.HealthState.Recovered);
+                funeralAgentsCount = agents.Count(a => ((AgentCore.AbstractPerson)a).GetHealthState() == Enums.HealthState.Funeral);
+                deadAgentsCount = agents.Count(a => ((AgentCore.AbstractPerson)a).GetHealthState() == Enums.HealthState.Dead);
             }
         }
     }
