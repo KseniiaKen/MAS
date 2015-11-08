@@ -39,12 +39,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Agents\Adolescent.cs" />
+    <Compile Include="Agents\Adult.cs" />
+    <Compile Include="Agents\Child.cs" />
+    <Compile Include="Agents\Elder.cs" />
+    <Compile Include="Agents\Youngster.cs" />
     <Compile Include="Containers\Home.cs" />
     <Compile Include="Containers\Hospital.cs" />
     <Compile Include="Containers\Mall.cs" />
     <Compile Include="Containers\Office.cs" />
     <Compile Include="Containers\Theater.cs" />
-    <Compile Include="Person.cs" />
+    <Compile Include="Agents\Person.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -53,9 +58,7 @@
       <Name>CoreAMS</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Agents\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

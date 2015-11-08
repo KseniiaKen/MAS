@@ -62,6 +62,11 @@ namespace CoreAMS.AgentManagementSystem
             }
         }
 
+        public static void AddOneAgent(IAgent agent)//добавляем одного агента в общий каталог
+        {
+            agentDictionary.Add(agent.GetId(), agent);
+        }
+
         public static IAgent GetAgentById(int agentId)
         {
             return agentDictionary[agentId];

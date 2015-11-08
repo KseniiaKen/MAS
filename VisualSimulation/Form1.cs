@@ -11,7 +11,7 @@ using System.Windows.Forms;
 using CoreAMS.AgentManagementSystem;
 using CoreAMS.AgentCore;
 using CoreAMS;
-using Agent;
+using Agent.Agents;
 using CoreAMS.Global;
 using Agent.Containers;
 
@@ -24,18 +24,8 @@ namespace VisualSimulation
             InitializeComponent();
         }
 
-        Thread startAgentsThread = new Thread(() => AgentManagementSystem.RunAgents()); //инициализация потока, в котором происходит жизнь; поле
-
-        // События, которые происходят при нажатии на кнопку Start
-        private void button1_Click(object sender, EventArgs e)
+        private void fillContainers() 
         {
-            List<IAgent> p = new List<IAgent>(); // создаем пустой список агентов
-
-            p.AddRange(Person.PersonList(Enums.HealthState.Infectious, 10000)); // добавляем инфицированных агентов
-            p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000)); // добавляем здоровых агентов
-
-            GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
-
             Theater theater = new Theater(356, 23);
             Containers.Instance.Add(theater); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
 
@@ -50,7 +40,29 @@ namespace VisualSimulation
 
             Office office = new Office(100, 20);
             Containers.Instance.Add(office);
+        }
 
+        private void fillAgents()
+        {
+            List<IAgent> p = new List<IAgent>(); // создаем пустой список агентов
+
+            p.AddRange(Person.PersonList(Enums.HealthState.Infectious, 10000)); // добавляем инфицированных агентов
+            p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000)); // добавляем здоровых агентов
+
+            GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
+
+            Child child = new Child(0, Enums.HealthState.Susceptible, "locationProbabilities.csv");
+            GlobalAgentDescriptorTable.AddOneAgent(child);
+
+        }
+
+        Thread startAgentsThread = new Thread(() => AgentManagementSystem.RunAgents()); //инициализация потока, в котором происходит жизнь; поле
+
+        // События, которые происходят при нажатии на кнопку Start
+        private void button1_Click(object sender, EventArgs e)
+        {
+            fillContainers();
+            fillAgents();
             startAgentsThread.Start(); // в отдельном потоке запускаем всех агентов
             timer1.Start(); // запускаем счетчик времени, для обновления окошка (ко времени системы не имеет никакого отношения)
 

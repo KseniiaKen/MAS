@@ -8,7 +8,7 @@ using CoreAMS.AgentCore;
 using CoreAMS.MessageTransportSystem;
 using CoreAMS.AgentManagementSystem;
 
-namespace Agent
+namespace Agent.Agents
 {
     public class Person : AbstractPerson
     {
@@ -123,8 +123,8 @@ namespace Agent
 
                     // Когда наступает время, агент переходит в состояние Recovered
                     if (GlobalTime.Time == changeTime)
-                    {   //может умереть, а не выздороветь:
-
+                    {   
+                        //может умереть, а не выздороветь:
                         if (r.Next(0, 99) >= 100 * FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
                         {
                             SetHealthState(Enums.HealthState.Recovered);
