@@ -39,7 +39,9 @@ namespace CoreAMS
             Home,
             Hospital,
             Mall,
-            Office
+            Office,
+            University,
+            School
 
         }
 

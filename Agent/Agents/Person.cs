@@ -7,11 +7,25 @@ using CoreAMS;
 using CoreAMS.AgentCore;
 using CoreAMS.MessageTransportSystem;
 using CoreAMS.AgentManagementSystem;
+using System.IO;
+using System.Globalization;
 
 namespace Agent.Agents
 {
     public class Person : AbstractPerson
     {
+        protected struct LocationProbabilitiesKey // для описания ключа, в котором содержится информация о том, какой контейнер и какое время. 
+        //Если бы это был класс, то не работали бы сравнения ключей в Dictionary; они бы были ссылками на разные места в куче.
+        {
+            public int startTime;
+            public int endTime;
+            public ContainersCore container; // какой-то контейнер, для которого определяем вероятность.
+        }
+
+        public Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
+
+
+
         private const double FUNERAL_PROBABILITY = 0.2; //TODO: может, вероятность должна зависеть от возрастных категорий?
         private const double DEATH_PROBABILITY = 0.05;
         private static Random r = new Random();   //генератор случайных чисел
@@ -28,7 +42,7 @@ namespace Agent.Agents
         private int infectedOtherAgentTime = 24; // частота чаражения других людей (например, заражать кого-либо каждые 10 часов)
 
         // создаётся агент, которому задаются ID, состояние здоровья
-        public Person(int Id, CoreAMS.Enums.HealthState healthState)
+        public Person(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesFile)
         {
             this.Id = Id;
             this.healthState = healthState;
@@ -47,6 +61,23 @@ namespace Agent.Agents
                 case Enums.HealthState.Recovered:
                     changeTime = recoveredTime;
                     break;
+            }
+
+            string[] rowValues = null;
+            string[] rows = File.ReadAllLines(locationProbabilitiesFile);
+            for (int i = 0; i < rows.Length; i++) 
+            {
+                if (!String.IsNullOrEmpty(rows[i]))
+                {
+                    rowValues = rows[i].Split(',');
+                    LocationProbabilitiesKey key = new LocationProbabilitiesKey()
+                    {
+                        startTime = Int32.Parse(rowValues[0]),
+                        endTime = Int32.Parse(rowValues[1]),
+                        container = CoreAMS.Global.Containers.Instance.ElementAt(Int32.Parse(rowValues[2]))
+                    };
+                    this.locationProbabilities.Add(key, (double)Decimal.Parse(rowValues[3], CultureInfo.InvariantCulture));
+                }
             }
             
         }
@@ -168,14 +199,14 @@ namespace Agent.Agents
         }
 
         // Вспомогательная функция для создания агентов определенного состояния. К какому-либо агенту не имеет отношения.
-        public static List<Person> PersonList(CoreAMS.Enums.HealthState healthState, int count)
+/*      public static List<Person> PersonList(CoreAMS.Enums.HealthState healthState, int count, string locationProbabilitiesFile)
         {
             List<Person> persons = new List<Person>();
 
             for (int i = 0; i < count; ++i)
-                persons.Add(new Person(GlobalAgentDescriptorTable.GetNewId, healthState));
+                persons.Add(new Person(GlobalAgentDescriptorTable.GetNewId, healthState, locationProbabilitiesFile));
 
             return persons;
-        }
+        }*/
     }
 }

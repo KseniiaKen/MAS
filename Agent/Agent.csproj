@@ -48,8 +48,10 @@
     <Compile Include="Containers\Hospital.cs" />
     <Compile Include="Containers\Mall.cs" />
     <Compile Include="Containers\Office.cs" />
+    <Compile Include="Containers\School.cs" />
     <Compile Include="Containers\Theater.cs" />
     <Compile Include="Agents\Person.cs" />
+    <Compile Include="Containers\University.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

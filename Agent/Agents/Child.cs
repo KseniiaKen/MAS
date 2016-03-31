@@ -11,37 +11,11 @@ using System.Globalization;
 
 namespace Agent.Agents
 {
-    public class Child : Person //TODO: the same in Person.
-    { 
-        private struct LocationProbabilitiesKey // для описания ключа, в котором содержится информация о том, какой контейнер и какое время. 
-            //Если бы это был класс, то не работали бы сравнения ключей в Dictionary; они бы были ссылками на разные места в куче.
+    public class Child : Person 
+    {
+        public Child(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesDir)
+            : base(Id, healthState, locationProbabilitiesDir + "/LPChild.csv")
         {
-            public int startTime;
-            public int endTime;
-            public ContainersCore container; // какой-то контейнер, для которого определяем вероятность.
-        }
-
-        private Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
-
-        public Child(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesFile) : base(Id, healthState)
-        {
-            string[] rowValues = null;
-            string[] rows = File.ReadAllLines(locationProbabilitiesFile);
-            for (int i = 0; i < rows.Length; i++) 
-            {
-                if (!String.IsNullOrEmpty(rows[i]))
-                {
-                    rowValues = rows[i].Split(',');
-                    LocationProbabilitiesKey key = new LocationProbabilitiesKey()
-                    {
-                        startTime = Int32.Parse(rowValues[0]),
-                        endTime = Int32.Parse(rowValues[1]),
-                        container = CoreAMS.Global.Containers.Instance.ElementAt(Int32.Parse(rowValues[2]))
-                    };
-                    this.locationProbabilities.Add(key, (double)Decimal.Parse(rowValues[3], CultureInfo.InvariantCulture));
-                }
-            }
-
             //int st = 10;
             //int et = 13;
             //Hospital h1 = new Hospital(0.6, 1000.0);
@@ -54,5 +28,21 @@ namespace Agent.Agents
             //double pr = locationProbabilities[key];
         }
 
+        public static List<Child> ChildList(CoreAMS.Enums.HealthState healthState, int count, string locationProbabilitiesFile)
+        {
+            List<Child> childrens = new List<Child>();
+
+            for (int i = 0; i < count; ++i)
+                childrens.Add(new Child(GlobalAgentDescriptorTable.GetNewId, healthState, locationProbabilitiesFile));
+
+            return childrens;
+        }
+
     }
 }
+//TODO: 1. создать папку, в которой хранятся файлы с правилами +
+//      2. конструктору Child должно передаваться имя папки, а не файла +
+//      3. в нём конструировать (зная папку, в которой он находится) имя файла и передавать его в конструктор базового класса, т.е. Person. +
+//      4. в момент создания нового child в Form1 передавать ему третьим параметром не путь к файлу, а путь к папке. +
+
+// Form1.cs  49 строка: создать новый файл правил для Person, прописать путь к этому файлу.

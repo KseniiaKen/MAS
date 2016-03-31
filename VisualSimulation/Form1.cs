@@ -29,29 +29,40 @@ namespace VisualSimulation
             Theater theater = new Theater(356, 23);
             Containers.Instance.Add(theater); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
 
-            Mall mall = new Mall(578, 90);
-            Containers.Instance.Add(mall);
-
             Home home = new Home(200, 12);
             Containers.Instance.Add(home);
 
             Hospital hospital = new Hospital(237, 19);
             Containers.Instance.Add(hospital);
 
-            Office office = new Office(100, 20);
+            Mall mall = new Mall(578, 90);
+            Containers.Instance.Add(mall);
+
+            Office office = new Office(236, 20);
             Containers.Instance.Add(office);
+
+            University university = new University(300, 25);
+            Containers.Instance.Add(university);
+
+            School school = new School(250, 30);
+            Containers.Instance.Add(school);
         }
 
         private void fillAgents()
         {
             List<IAgent> p = new List<IAgent>(); // создаем пустой список агентов
+            //p.AddRange(Person.PersonList(Enums.HealthState.Infectious, 10000, "LocationProbabilities/LPPerson.csv")); // добавляем инфицированных агентов
+            //p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000, "LocationProbabilities/LPPerson.csv")); // добавляем здоровых агентов
+            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 10, "LocationProbabilities"));
+            p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 17, "LocationProbabilities"));
+            p.AddRange(Child.ChildList(Enums.HealthState.Infectious, 20, "LocationProbabilities"));
+            p.AddRange(Elder.ElderList(Enums.HealthState.Infectious, 10, "LocationProbabilities"));
+            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 70, "LocationProbabilities"));
 
-            p.AddRange(Person.PersonList(Enums.HealthState.Infectious, 10000)); // добавляем инфицированных агентов
-            p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000)); // добавляем здоровых агентов
 
             GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
 
-            Child child = new Child(0, Enums.HealthState.Susceptible, "locationProbabilities.csv");
+            Child child = new Child(0, Enums.HealthState.Susceptible, "LocationProbabilities");
             GlobalAgentDescriptorTable.AddOneAgent(child);
 
         }

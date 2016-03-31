@@ -8,8 +8,19 @@ namespace Agent.Agents
 {
     class Adolescent : Person
     {
-        public Adolescent(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesFile) : base(Id, healthState) 
+        public Adolescent(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesDir)
+            : base(Id, healthState, locationProbabilitiesDir + "/Adolescent.csv")
         {
+        }
+
+        public static List<Adolescent> AdolescentList(CoreAMS.Enums.HealthState healthState, int count, string locationProbabilitiesFile)
+        {
+            List<Adolescent> adolescents = new List<Adolescent>();
+
+            for (int i = 0; i < count; ++i)
+                adolescents.Add(new Adolescent(GlobalAgentDescriptorTable.GetNewId, healthState, locationProbabilitiesFile));
+
+            return adolescents;
         }
     }
 }
