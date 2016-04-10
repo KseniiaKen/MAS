@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreAMS.AgentManagementSystem;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Agent.Agents
 {
-    class Adult : Person
+    public class Adult : Person
     {
         public Adult(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesDir)
             : base(Id, healthState, locationProbabilitiesDir + "/Adult.csv") 
