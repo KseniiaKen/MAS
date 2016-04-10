@@ -35,13 +35,13 @@ namespace CoreAMS
 
         public enum ContainerType 
         {
-            Theater,
             Home,
             Hospital,
             Mall,
             Office,
             University,
-            School
+            School,
+            Nursery
 
         }
 

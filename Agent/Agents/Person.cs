@@ -14,7 +14,7 @@ namespace Agent.Agents
 {
     public class Person : AbstractPerson
     {
-        protected struct LocationProbabilitiesKey // для описания ключа, в котором содержится информация о том, какой контейнер и какое время. 
+        public struct LocationProbabilitiesKey // для описания ключа, в котором содержится информация о том, какой контейнер и какое время. 
         //Если бы это был класс, то не работали бы сравнения ключей в Dictionary; они бы были ссылками на разные места в куче.
         {
             public int startTime;
@@ -24,22 +24,21 @@ namespace Agent.Agents
 
         public Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
 
-
-
-        private const double FUNERAL_PROBABILITY = 0.2; //TODO: может, вероятность должна зависеть от возрастных категорий?
-        private const double DEATH_PROBABILITY = 0.05;
+        private const double FUNERAL_PROBABILITY = 0.01; //TODO: может, вероятность должна зависеть от возрастных категорий?
+        private const double DEATH_PROBABILITY = 0.75;
+        private const double INFECTION_PROBABILITY = 0.05; // вероятность заразиться при встрече с больным агентом
         private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
         private bool isBeingInfected = false;          // true, если пошёл процесс заражения; после того, как заразился, true заменяетс на false.
-
+      
         // Время протекания каждой стадии и время заражения других людей
         private int exposedTime = 2 * Enums.HoursDay;
         private int infectiousTime = 7 * Enums.HoursDay;
         private int recoveredTime = 4 * Enums.HoursWeek;
         private int funeralTime = 3 * Enums.HoursDay;
 
-        private int infectedOtherAgentTime = 24; // частота чаражения других людей (например, заражать кого-либо каждые 10 часов)
+        private int infectedOtherAgentTime = 24; // частота заражения других людей (например, заражать кого-либо каждые 10 часов)
 
         // создаётся агент, которому задаются ID, состояние здоровья
         public Person(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesFile)
@@ -111,8 +110,10 @@ namespace Agent.Agents
         public override void SendMessage()
         {
             // выбираем случайного агента и отправляем ему сообщение, что он инфицирован
-            MessageTransfer.MessageAgentToRandomAgent(
-                new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
+            if (r.Next(0, 99) >= 100 * INFECTION_PROBABILITY)
+            {
+                MessageTransfer.MessageAgentToRandomAgent(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
+            }
         }
 
         // Получение сообщения от другого агента
@@ -125,9 +126,43 @@ namespace Agent.Agents
             }
         }
 
+        // в каком контейнере должен быть агент в данный момент времени
+        private ContainersCore containerToGo() {
+            while (true)
+            {
+                for (int i = 0; i < locationProbabilities.Count; i++)
+                {
+                    var keyAndValue = locationProbabilities.ElementAt(i);
+                    if (keyAndValue.Key.startTime <= GlobalTime.realTime && keyAndValue.Key.endTime > GlobalTime.realTime)
+                    {
+                        if (r.NextDouble() < keyAndValue.Value) { return keyAndValue.Key.container; }
+                    }
+
+                }
+            }
+ /*           int[] a = new int[5]{1,2,3,4,5};
+            int x = 0;
+            for (int i=0; i < a.Length; i++) {
+                if (a[i] > 2) { x = a[i]; break; }
+                
+            }*/
+
+        }
+ 
+
+
         // Запуск агента
         public override void Run()
         {
+            ContainersCore resOfContainerToGo = containerToGo();
+            if (currentContainer != resOfContainerToGo) {
+                if (currentContainer != null) {
+                    currentContainer.DeletePersonFromContainer(this);
+                }
+                resOfContainerToGo.AddPersonInContainer(this);
+                currentContainer = resOfContainerToGo;
+            }            
+
             switch(healthState)
             {
                 case Enums.HealthState.Susceptible:
@@ -191,6 +226,7 @@ namespace Agent.Agents
                     }
                     break;
             }
+
         }
 
         public override void Stop()
@@ -208,5 +244,6 @@ namespace Agent.Agents
 
             return persons;
         }*/
+
     }
 }

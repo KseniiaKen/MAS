@@ -8,6 +8,7 @@ using Agent.Containers;
 using CoreAMS.Global;
 using System.IO;
 using System.Globalization;
+using CoreAMS.AgentManagementSystem;
 
 namespace Agent.Agents
 {

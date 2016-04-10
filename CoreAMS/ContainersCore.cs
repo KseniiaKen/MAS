@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CoreAMS.AgentCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,5 +30,19 @@ namespace CoreAMS
         public double Dencity {
             get { return this.dencity; }
         }
+
+        // список абстрактных person-ов, находящихся в контейнере в данный момент времени
+        public List<AbstractPerson> abstractPersonsInCurrentContainer = new List<AbstractPerson>(); 
+
+        //метод, добавляющий persona в контейнер
+        public void AddPersonInContainer(AbstractPerson person) {
+            abstractPersonsInCurrentContainer.Add(person);
+        }
+
+        //метод, убирающий persona из контейнера
+        public void DeletePersonFromContainer(AbstractPerson person) {
+            abstractPersonsInCurrentContainer.Remove(person);
+        }
     }
+
 }

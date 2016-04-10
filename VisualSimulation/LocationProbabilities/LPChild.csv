@@ -1,5 +1,7 @@
-3,4,0,0.01,Theater
-3,4,1,0.02,Mall
-3,4,2,0.54,Home
-3,4,3,0.4,Hospital
-3,4,4,0.1,Office
+0,24,0,0.49,Home
+0,24,1,0.24,Hospital
+0,24,2,0.02,Mall
+0,24,3,0.01,Office
+0,24,4,0.01,University
+0,24,5,0.01,School
+0,24,6,0.22,Nursery

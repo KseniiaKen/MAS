@@ -24,6 +24,8 @@ namespace CoreAMS.AgentCore
         protected Dictionary<string, Object> variableDictionary = new Dictionary<string,object>();
         protected int Id = -1;
 
+        public ContainersCore currentContainer = null; // контейнер, в котором сейчас находится агент
+
         public abstract int GetId();
 
         public abstract Enums.AgentState GetState();

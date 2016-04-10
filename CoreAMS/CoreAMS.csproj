@@ -43,6 +43,8 @@
     <Compile Include="AgentCore.cs" />
     <Compile Include="ContainersCore.cs" />
     <Compile Include="Enums.cs" />
+    <Compile Include="GlobalAgentDescriptorTable.cs" />
+    <Compile Include="GlobalTime.cs" />
     <Compile Include="Global\Containers.cs" />
     <Compile Include="MessageTransportSystem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -14,6 +14,7 @@ using CoreAMS;
 using Agent.Agents;
 using CoreAMS.Global;
 using Agent.Containers;
+using System.IO;
 
 namespace VisualSimulation
 {
@@ -24,13 +25,10 @@ namespace VisualSimulation
             InitializeComponent();
         }
 
-        private void fillContainers() 
+        private static void fillContainers() 
         {
-            Theater theater = new Theater(356, 23);
-            Containers.Instance.Add(theater); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
-
-            Home home = new Home(200, 12);
-            Containers.Instance.Add(home);
+            Home home = new Home(50, 12);
+            Containers.Instance.Add(home); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
 
             Hospital hospital = new Hospital(237, 19);
             Containers.Instance.Add(hospital);
@@ -46,34 +44,56 @@ namespace VisualSimulation
 
             School school = new School(250, 30);
             Containers.Instance.Add(school);
+
+            Nursery nursery = new Nursery(60, 23);
+            Containers.Instance.Add(nursery);
+
         }
 
-        private void fillAgents()
+        private static void fillAgents()
         {
             List<IAgent> p = new List<IAgent>(); // создаем пустой список агентов
-            //p.AddRange(Person.PersonList(Enums.HealthState.Infectious, 10000, "LocationProbabilities/LPPerson.csv")); // добавляем инфицированных агентов
-            //p.AddRange(Person.PersonList(Enums.HealthState.Susceptible, 90000, "LocationProbabilities/LPPerson.csv")); // добавляем здоровых агентов
-            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 10, "LocationProbabilities"));
-            p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 17, "LocationProbabilities"));
-            p.AddRange(Child.ChildList(Enums.HealthState.Infectious, 20, "LocationProbabilities"));
-            p.AddRange(Elder.ElderList(Enums.HealthState.Infectious, 10, "LocationProbabilities"));
-            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 70, "LocationProbabilities"));
-
+            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
+            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Susceptible, 750, "LocationProbabilities"));
+            p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
+            p.AddRange(Adult.AdultList(Enums.HealthState.Susceptible, 2450, "LocationProbabilities"));
+            p.AddRange(Child.ChildList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
+            p.AddRange(Child.ChildList(Enums.HealthState.Susceptible, 250, "LocationProbabilities"));
+            p.AddRange(Elder.ElderList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
+            p.AddRange(Elder.ElderList(Enums.HealthState.Susceptible, 900, "LocationProbabilities"));
+            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
+            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Susceptible, 650, "LocationProbabilities"));
 
             GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
-
-            Child child = new Child(0, Enums.HealthState.Susceptible, "LocationProbabilities");
-            GlobalAgentDescriptorTable.AddOneAgent(child);
-
         }
 
-        Thread startAgentsThread = new Thread(() => AgentManagementSystem.RunAgents()); //инициализация потока, в котором происходит жизнь; поле
+        Thread startAgentsThread = new Thread(() => {
+            for (int i = 0; i < 80; i++)
+            {
+                fillContainers();
+                fillAgents();
+                AgentManagementSystem.RunAgents();
+                String lastStringInResultsFile = String.Format("{0},{1},{2},{3},{4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                    AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time);
+
+                if (!File.Exists("D:/FileOfResults.csv"))
+                {
+                    File.Create("D:/FileOfResults.csv").Dispose();
+                }
+                StreamWriter resultsFile = File.AppendText("D:/FileOfResults.csv");
+                resultsFile.WriteLine(lastStringInResultsFile);
+                resultsFile.Dispose();
+
+                GlobalAgentDescriptorTable.deleteAllAgents();
+                Containers.Instance.Clear();
+                GlobalTime.Time = 0;
+            }
+            
+        }); //инициализация потока, в котором происходит жизнь; поле
 
         // События, которые происходят при нажатии на кнопку Start
         private void button1_Click(object sender, EventArgs e)
         {
-            fillContainers();
-            fillAgents();
             startAgentsThread.Start(); // в отдельном потоке запускаем всех агентов
             timer1.Start(); // запускаем счетчик времени, для обновления окошка (ко времени системы не имеет никакого отношения)
 

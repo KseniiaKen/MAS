@@ -29,14 +29,20 @@ namespace CoreAMS.MessageTransportSystem
         // Отправка сообщения случайному агенту
         public static void MessageAgentToRandomAgent(AgentMessage message)
         {
-            GlobalAgentDescriptorTable.
-                GetRandomAgentExceptSenderAgentId(message.senderAgentId).
-                EventMessage(new AgentMessage(
-                    Enums.MessageType.Infected.ToString(),
-                    -1,
-                    message.senderAgentId
-                )
-            );
+            IAgent agent = GlobalAgentDescriptorTable.SameLocationAgent(message.senderAgentId);
+            //IAgent agent = GlobalAgentDescriptorTable.GetRandomAgentExceptSenderAgentId(message.senderAgentId);
+            if (agent != null)
+            {
+                agent.EventMessage(new AgentMessage(Enums.MessageType.Infected.ToString(), -1, message.senderAgentId));
+            }
+
         }
+
+        //Нам нужен метод, отправляющий сообщения о заражении не случайным агентам, а находящимся в одной локации.
+
+        public static void MessageAgentInThisLocation(AgentMessage message) { 
+                    
+        }
+        
     }
 }

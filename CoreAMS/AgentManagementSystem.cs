@@ -5,91 +5,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CoreAMS.AgentCore;
+using System.ComponentModel;
+using CoreAMS.Global;
 
 namespace CoreAMS.AgentManagementSystem
 {
-    // для управления временем системы
-    public static class GlobalTime
-    {
-        private static int time = 0;
-        private static int day = Enums.HoursDay;
-        private static int delay = 10;
-
-        // Количество часов с момента запуска системы
-        public static int Time
-        {
-            get { return time; }
-            set { time = value; }
-        }
-
-        // Количество дней с момента запуска системы
-        public static int Day
-        {
-            get { return time / day; }
-        }
-
-        // Возвращает true, если настал новый день
-        public static bool isNextDay
-        {
-            get { return (time + 1) % Enums.HoursDay == 0; }
-        }
-    }
-
-    // здесь хранятся все агенты и их состояния.
-    public static class GlobalAgentDescriptorTable
-    {
-        
-        private static Dictionary<int, IAgent> agentDictionary = new Dictionary<int,IAgent>(); // хранятся список агентов и их ID
-        private static int key = 0;
-        private static object threadLock = new object();
-
-
-        public static int GetNewId
-        {
-            get
-            {
-                lock (threadLock) key++;
-                return key;
-            }
-        }
-
-        // Добавляем агентов в общий каталог
-        public static void AddAgents(List<IAgent> agents)
-        {
-            foreach (var agent in agents)
-            {
-                agentDictionary.Add(agent.GetId(), agent);
-            }
-        }
-
-        public static void AddOneAgent(IAgent agent)//добавляем одного агента в общий каталог
-        {
-            agentDictionary.Add(agent.GetId(), agent);
-        }
-
-        public static IAgent GetAgentById(int agentId)
-        {
-            return agentDictionary[agentId];
-        }
-
-        // Возвращаем список всех агентов
-        public static List<IAgent> GetAgents()
-        {
-            return agentDictionary.Values.ToList();
-        }
-
-        public static int Count { get { return agentDictionary.Count; } }
-
-        // Получаем случайного агента для заражения
-        public static IAgent GetRandomAgentExceptSenderAgentId(int agentId)
-        {
-            Random rand = new Random(Guid.NewGuid().GetHashCode());
-            int randomId = agentId;
-            while (randomId == agentId) randomId = rand.Next(key) + 1;
-            return agentDictionary[randomId];
-        }
-    }
-
     // Менеджер агентов, для запуска всех агентов.
     public static class AgentManagementSystem
     {
@@ -108,6 +28,18 @@ namespace CoreAMS.AgentManagementSystem
             {
                 // получаем список всех существующих агентов
                 var agents = GlobalAgentDescriptorTable.GetAgents();
+               /* foreach (ContainersCore c in Containers.Instance) {
+                    if (c.abstractPersonsInCurrentContainer.Count > 0)
+                    {
+                        Console.WriteLine("{0} ({1})", c.ContainerType, GlobalTime.realTime);
+                        foreach (AbstractPerson p in c.abstractPersonsInCurrentContainer)
+                        {
+                            Console.Write(p.GetId());
+                            Console.Write(" ");
+                        }
+                        Console.WriteLine();
+                    }
+                }*/
 
                 // запускаем каждый агент (агенты меняют свои состояния)
                 for (int i = 0; i < agents.Count; ++i)
@@ -119,6 +51,11 @@ namespace CoreAMS.AgentManagementSystem
 
                 // после того как все агенты за этот час изменили свои состояния, мы увеличиваем время
                 GlobalTime.Time += 1;
+
+                if (GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) 
+                {
+                    break;
+                }
             }
         }
 
