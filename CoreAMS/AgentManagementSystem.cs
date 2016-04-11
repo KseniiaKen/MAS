@@ -52,7 +52,7 @@ namespace CoreAMS.AgentManagementSystem
                 // после того как все агенты за этот час изменили свои состояния, мы увеличиваем время
                 GlobalTime.Time += 1;
 
-                if (GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) 
+                if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {
                     break;
                 }

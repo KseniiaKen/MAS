@@ -24,21 +24,21 @@ namespace Agent.Agents
 
         public Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
 
-        private const double FUNERAL_PROBABILITY = 0.01; //TODO: может, вероятность должна зависеть от возрастных категорий?
-        private const double DEATH_PROBABILITY = 0.75;
-        private const double INFECTION_PROBABILITY = 0.05; // вероятность заразиться при встрече с больным агентом
+        private const double FUNERAL_PROBABILITY = 0.75; //вероятность смерти
+        private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
+        private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
         private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
         private bool isBeingInfected = false;          // true, если пошёл процесс заражения; после того, как заразился, true заменяетс на false.
       
         // Время протекания каждой стадии и время заражения других людей
-        private int exposedTime = 2 * Enums.HoursDay;
-        private int infectiousTime = 7 * Enums.HoursDay;
-        private int recoveredTime = 4 * Enums.HoursWeek;
-        private int funeralTime = 3 * Enums.HoursDay;
+        private int exposedTime = 10 * Enums.HoursDay;
+        private int infectiousTime = 10 * Enums.HoursDay;
+        private int recoveredTime = 9000 * Enums.HoursWeek;
+        private int funeralTime = (int)(4.5 * (float)Enums.HoursDay);
 
-        private int infectedOtherAgentTime = 24; // частота заражения других людей (например, заражать кого-либо каждые 10 часов)
+        private int infectedOtherAgentTime = 1; // частота заражения других людей (например, заражать кого-либо каждый час)
 
         // создаётся агент, которому задаются ID, состояние здоровья
         public Person(int Id, CoreAMS.Enums.HealthState healthState, string locationProbabilitiesFile)
@@ -110,7 +110,7 @@ namespace Agent.Agents
         public override void SendMessage()
         {
             // выбираем случайного агента и отправляем ему сообщение, что он инфицирован
-            if (r.Next(0, 99) >= 100 * INFECTION_PROBABILITY)
+            if (r.Next(0, 99) <= 100 * INFECTION_PROBABILITY)
             {
                 MessageTransfer.MessageAgentToRandomAgent(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
             }
@@ -161,7 +161,7 @@ namespace Agent.Agents
                 }
                 resOfContainerToGo.AddPersonInContainer(this);
                 currentContainer = resOfContainerToGo;
-            }            
+            }
 
             switch(healthState)
             {
@@ -208,7 +208,7 @@ namespace Agent.Agents
                     if (GlobalTime.Time == changeTime)
                     {
                         int n = r.Next(0, 99);
-                        if (n >= 100 * DEATH_PROBABILITY)
+                        if (n <= 100 * DEATH_PROBABILITY)
                         {
                             SetHealthState(Enums.HealthState.Dead);
                         }
@@ -218,13 +218,14 @@ namespace Agent.Agents
                         }
                     }
                     break;
-                case Enums.HealthState.Recovered:
+
+                /*case Enums.HealthState.Recovered:
                     // Когда наступает время, агент переходит в состояние Susceptible
                     if (GlobalTime.Time == changeTime)
                     {
                         SetHealthState(Enums.HealthState.Susceptible);
                     }
-                    break;
+                    break;*/
             }
 
         }
