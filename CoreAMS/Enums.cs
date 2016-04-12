@@ -16,6 +16,7 @@ namespace CoreAMS
         }
 
         // Перечисление всех состояний здоровья агента
+        [Serializable]
         public enum HealthState
         {
             Susceptible,
