@@ -64,6 +64,13 @@ namespace CoreAMS.MessageTransportSystem
             client.Send(msg);
         }
 
+        public static void SendGoto(int agentId, int containerId)
+        {
+            var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, agentId, containerId));
+            msg.ContentType = typeof(GoToContainerMessage).Name;
+            client.Send(msg);
+        }
+
         public static void Dispose()
         {
             client.Close();

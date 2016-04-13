@@ -39,6 +39,7 @@ namespace GlobalDescriptorWorker
         private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
         private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
         private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
+        private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
 
         private static void fillContainers()
         {
@@ -84,6 +85,7 @@ namespace GlobalDescriptorWorker
                 Person agent = (Person)p[i];
                 var workserData = this.workers.ElementAt(i % this.workers.Count);
                 this.agents.Add(agent.GetId(), workserData.Key);
+                this.agentLocations.Add(agent.GetId(), null);
                 var msg = new BrokeredMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1));
                 msg.ContentType = typeof(AddAgentMessage).Name;
                 workserData.Value.Send(msg);
@@ -168,16 +170,45 @@ namespace GlobalDescriptorWorker
                 Trace.TraceInformation("Warning: too litle agents");
                 return;
             }
+            // Random:
+            // int idx = random.Next(0, this.agents.Count - 1);
 
-            int idx = random.Next(0, this.agents.Count - 1);
-            var kvp = this.agents.ElementAt(idx);
-            QueueClient iClient = this.workers[kvp.Value];
+            ContainersCore currentContainer = this.agentLocations[sourceAgentId];
+            if (currentContainer == null)
+                return;
+
+            int destAgentId = sourceAgentId;
+            while (destAgentId == sourceAgentId)
+            {
+                destAgentId = currentContainer.GetRandomAgent();
+            }
+
+            QueueClient iClient = this.workers[this.agents[destAgentId]];
             var msg0 = new Message(this.guid, MessageType.Infect);
-            msg0.data = kvp.Key.ToString();
-            Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, kvp.Key);
+            msg0.data = destAgentId.ToString();
+            Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
             var msg = new BrokeredMessage(msg0);
             msg.ContentType = typeof(Message).Name;
             iClient.Send(msg);
+        }
+
+        private void gotoContainer(int agentId, int containerId)
+        {
+            // Trace.TraceInformation("Go: {0} to {1}", agentId, containerId);
+
+            int idx = Containers.Instance.FindIndex((c) => c.Id == containerId);
+            if (idx < 0)
+            {
+                Trace.TraceWarning("Container with id {0} not found", containerId);
+                return;
+            }
+
+            ContainersCore container = Containers.Instance[idx];
+            ContainersCore oldContainer = this.agentLocations[agentId];
+            container.AddPersonInContainer(agentId);
+            if (oldContainer != null)
+                oldContainer.DeletePersonFromContainer(agentId);
+            agentLocations[agentId] = container;
         }
 
         public override void Run()
@@ -207,6 +238,9 @@ namespace GlobalDescriptorWorker
                             break;
                         case "ResultsMessage":
                             message = receivedMessage.GetBody<ResultsMessage>();
+                            break;
+                        case "GoToContainerMessage":
+                            message = receivedMessage.GetBody<GoToContainerMessage>();
                             break;
                     }
                     
@@ -246,6 +280,13 @@ namespace GlobalDescriptorWorker
                                     foreach (AutoResetEvent e in this.waiters.Values)
                                         e.Set();
                                 }                                
+                            }
+                            break;
+                        case MessageType.GoTo:
+                            if (isStarted)
+                            {
+                                GoToContainerMessage gtMessage = (GoToContainerMessage)message;
+                                this.gotoContainer(gtMessage.agentId, gtMessage.containerId);
                             }
                             break;
                     }

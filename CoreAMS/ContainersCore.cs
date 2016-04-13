@@ -9,6 +9,8 @@ namespace CoreAMS
 {
     public abstract class ContainersCore
     {
+        private Random random = new Random();
+
         //заполнение параметров контейнера
         protected ContainersCore(Enums.ContainerType containerType, int id, double area, double dencity) {
             this.containerType = containerType;
@@ -39,16 +41,22 @@ namespace CoreAMS
         }
 
         // список абстрактных person-ов, находящихся в контейнере в данный момент времени
-        public List<AbstractPerson> abstractPersonsInCurrentContainer = new List<AbstractPerson>(); 
+        private List<int> agentIdsInCurrentContainer = new List<int>(); 
 
         //метод, добавляющий persona в контейнер
-        public void AddPersonInContainer(AbstractPerson person) {
-            abstractPersonsInCurrentContainer.Add(person);
+        public void AddPersonInContainer(int agentId) {
+            agentIdsInCurrentContainer.Add(agentId);
         }
 
         //метод, убирающий persona из контейнера
-        public void DeletePersonFromContainer(AbstractPerson person) {
-            abstractPersonsInCurrentContainer.Remove(person);
+        public void DeletePersonFromContainer(int agentId) {
+            agentIdsInCurrentContainer.Remove(agentId);
+        }
+
+        public int GetRandomAgent()
+        {
+            int idx = this.random.Next(0, this.agentIdsInCurrentContainer.Count - 1);
+            return agentIdsInCurrentContainer[idx];
         }
     }
 

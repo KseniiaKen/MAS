@@ -154,16 +154,14 @@ namespace Agent.Agents
         // Запуск агента
         public override void Run()
         {
-            //int resOfContainerToGo = containerToGo();
-            //if (currentContainer != resOfContainerToGo) {
-            //    if (currentContainer >= 0) {
-            //        currentContainer.DeletePersonFromContainer(this);
-            //    }
-            //    resOfContainerToGo.AddPersonInContainer(this);
-            //    currentContainer = resOfContainerToGo;
-            //}
+            int resOfContainerToGo = containerToGo();
+            if (currentContainer != resOfContainerToGo)
+            {
+                currentContainer = resOfContainerToGo;
+                MessageTransfer.SendGoto(this.GetId(), resOfContainerToGo);
+            }
 
-            switch(healthState)
+            switch (healthState)
             {
                 case Enums.HealthState.Susceptible:
                     // Агент заражается
