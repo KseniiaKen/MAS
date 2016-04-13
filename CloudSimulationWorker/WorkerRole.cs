@@ -146,8 +146,8 @@ namespace CloudSimulationWorker
                             ThreadPool.QueueUserWorkItem((obj) =>
                             {
                                 AgentManagementSystem.RunAgents();
-                                Trace.TraceInformation("Results:\nSusceptible: {0}\nFuneral: {1}\nDead: {2}\nRecovered: {3}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
-                                        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time);
+                                Trace.TraceInformation("Results:\nSusceptible: {0}\nRecovered: {3}\nInfectious: {5}\nFuneral: {1}\nDead: {2}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                                        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time, AgentManagementSystem.infectiousAgentsCount);
                                 isFinished = true;
                             });
                             break;
@@ -155,6 +155,9 @@ namespace CloudSimulationWorker
                             int agentId = Int32.Parse(message.data);
                             var agent = GlobalAgentDescriptorTable.GetAgentById(agentId);
                             agent.EventMessage(new CoreAMS.MessageTransportSystem.AgentMessage(Enums.MessageType.Infected.ToString(), -1, -1));
+                            break;
+                        case MessageType.Tick:
+                            AgentManagementSystem.NextTimeEvent.Set();
                             break;
 
                     }
@@ -210,6 +213,8 @@ namespace CloudSimulationWorker
             this.client.Close();
             //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
             //namespaceManager.DeleteQueue(this.guid.ToString());
+
+            CoreAMS.MessageTransportSystem.MessageTransfer.Dispose();
 
             base.OnStop();
 

@@ -12,6 +12,8 @@ namespace CoreAMS.Messages
         Registration = 0,
         AddAgent     = 1,
         Start        = 2,
-        Infect       = 3
+        Infect       = 3,
+        Tick         = 4,
+        TickEnd      = 5
     }
 }

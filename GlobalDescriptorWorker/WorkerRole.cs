@@ -32,9 +32,11 @@ namespace GlobalDescriptorWorker
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
+        System.Threading.Timer tickTimer;
 
         private QueueClient client;
         private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
+        private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
         private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
 
         private static void fillContainers()
@@ -91,6 +93,29 @@ namespace GlobalDescriptorWorker
 
         }
 
+        private void startTick()
+        {
+            ThreadPool.QueueUserWorkItem((obj) =>
+            {
+                while(true)
+                {
+                    WaitHandle.WaitAll(this.waiters.Values.ToArray());
+
+                    foreach(QueueClient c in this.workers.Values)
+                    {
+                        var msg = new BrokeredMessage(new Message(this.guid, MessageType.Tick));
+                        msg.ContentType = typeof(Message).Name;
+                        c.Send(msg);
+                    }
+                }
+            });
+
+            foreach(AutoResetEvent e in this.waiters.Values)
+            {
+                e.Set();
+            }
+        }
+
         public void Run2()
         {
             fillContainers();
@@ -102,6 +127,8 @@ namespace GlobalDescriptorWorker
                 msg.ContentType = typeof(Message).Name;
                 c.Send(msg);
             }
+
+            startTick();
 
             isStarted = true;
         }
@@ -157,10 +184,15 @@ namespace GlobalDescriptorWorker
                         case MessageType.Registration:
                             QueueClient senderClient = QueueClient.CreateFromConnectionString(this.connectionString, message.senderId.ToString(), ReceiveMode.ReceiveAndDelete);
                             this.workers.Add(message.senderId, senderClient);
+                            this.waiters.Add(message.senderId, new AutoResetEvent(false));
                             break;
                         case MessageType.Infect:
                             if (isStarted)
                                 this.infectAgent(Int32.Parse(message.data));
+                            break;
+                        case MessageType.TickEnd:
+                            if (isStarted)
+                                this.waiters[message.senderId].Set();
                             break;
                     }
                 }

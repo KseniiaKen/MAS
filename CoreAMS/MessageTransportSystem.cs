@@ -32,6 +32,8 @@ namespace CoreAMS.MessageTransportSystem
         private const string globalDescriptorQueueName = "GlobalDescriptor";
         public static Guid guid;
 
+        private static QueueClient client = QueueClient.CreateFromConnectionString(connectionString, globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
+
         // Отправка сообщения случайному агенту
         public static void MessageAgentToRandomAgent(AgentMessage message)
         {
@@ -42,19 +44,29 @@ namespace CoreAMS.MessageTransportSystem
             //    agent.EventMessage(new AgentMessage(Enums.MessageType.Infected.ToString(), -1, message.senderAgentId));
             //}
 
-            QueueClient client = QueueClient.CreateFromConnectionString(connectionString, globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
             var msg0 = new Message(guid, MessageType.Infect);
             msg0.data = message.senderAgentId.ToString();
             var msg = new BrokeredMessage(msg0);
             msg.ContentType = typeof(Message).Name;
             client.Send(msg);
-            client.Close();
         }
 
         //Нам нужен метод, отправляющий сообщения о заражении не случайным агентам, а находящимся в одной локации.
 
         public static void MessageAgentInThisLocation(AgentMessage message) { 
                     
+        }
+
+        public static void SendTickEnd()
+        {            
+            var msg = new BrokeredMessage(new Message(guid, MessageType.TickEnd));
+            msg.ContentType = typeof(Message).Name;
+            client.Send(msg);
+        }
+
+        public static void Dispose()
+        {
+            client.Close();
         }
         
     }

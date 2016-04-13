@@ -22,11 +22,15 @@ namespace CoreAMS.AgentManagementSystem
         public static int funeralAgentsCount;
         public static int deadAgentsCount;
 
+        public static AutoResetEvent NextTimeEvent = new AutoResetEvent(false);
+
         // Запуск всех агентов
         public static void RunAgents()
         {
             while (true)
             {
+                NextTimeEvent.WaitOne();
+
                 // получаем список всех существующих агентов
                 var agents = GlobalAgentDescriptorTable.GetAgents();
                /* foreach (ContainersCore c in Containers.Instance) {
@@ -50,21 +54,22 @@ namespace CoreAMS.AgentManagementSystem
 
                 RefreshAgentsStateCount();
 
-                Thread.Sleep(500);
-
                 // после того как все агенты за этот час изменили свои состояния, мы увеличиваем время
                 GlobalTime.Time += 1;
+
                 if (GlobalTime.Time % 24 == 0)
                 {
                     Trace.TraceInformation("New day: {0}", GlobalTime.Day);
-                    Trace.TraceInformation("Susceptible: {0}\nFuneral: {1}\nDead: {2}\nRecovered: {3}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
-                            AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount);
+                    Trace.TraceInformation("Susceptible: {0}\nRecovered: {3}\nInfectious: {4}\nFuneral: {1}\nDead: {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                            AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
                 }
 
                 if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {
                     break;
                 }
+
+                MessageTransportSystem.MessageTransfer.SendTickEnd();
             }
         }
 
