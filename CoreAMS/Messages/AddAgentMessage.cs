@@ -12,12 +12,14 @@ namespace CoreAMS.Messages
         public Enums.HealthState state;
         public string agentType;
         public int count;
+        public int agentId;
 
-        public AddAgentMessage(Guid senderId, string aType, Enums.HealthState healthState, int count) : base(senderId, MessageType.AddAgent)
+        public AddAgentMessage(Guid senderId, string aType, int agentId, Enums.HealthState healthState, int count) : base(senderId, MessageType.AddAgent)
         {
             this.agentType = aType;
             this.state = healthState;
             this.count = count;
+            this.agentId = agentId;
         }
 
     }

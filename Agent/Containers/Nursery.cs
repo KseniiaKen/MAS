@@ -9,6 +9,6 @@ namespace Agent.Containers
 {
     public class Nursery : ContainersCore
     {
-        public Nursery(double area, double dencity) : base(Enums.ContainerType.Nursery, area, dencity) { }
+        public Nursery(int id, double area, double dencity) : base(Enums.ContainerType.Nursery, id, area, dencity) { }
     }
 }

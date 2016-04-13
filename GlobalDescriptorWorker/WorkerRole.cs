@@ -27,9 +27,11 @@ namespace GlobalDescriptorWorker
 
         private string connectionString = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
         private string queueName = "GlobalDescriptor";
-        private const int registerTimeout = 10000;
+        private const int registerTimeout = 60000;
         private Guid guid = Guid.NewGuid();
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
+        private Random random = new Random();
+        private bool isStarted = false;
 
         private QueueClient client;
         private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
@@ -37,25 +39,25 @@ namespace GlobalDescriptorWorker
 
         private static void fillContainers()
         {
-            Home home = new Home(50, 12);
+            Home home = new Home(0, 50, 12);
             Containers.Instance.Add(home); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
 
-            Hospital hospital = new Hospital(237, 19);
+            Hospital hospital = new Hospital(1, 237, 19);
             Containers.Instance.Add(hospital);
 
-            Mall mall = new Mall(578, 90);
+            Mall mall = new Mall(2, 578, 90);
             Containers.Instance.Add(mall);
 
-            Office office = new Office(236, 20);
+            Office office = new Office(3, 236, 20);
             Containers.Instance.Add(office);
 
-            University university = new University(300, 25);
+            University university = new University(4, 300, 25);
             Containers.Instance.Add(university);
 
-            School school = new School(250, 30);
+            School school = new School(5, 250, 30);
             Containers.Instance.Add(school);
 
-            Nursery nursery = new Nursery(60, 23);
+            Nursery nursery = new Nursery(6, 60, 23);
             Containers.Instance.Add(nursery);
 
         }
@@ -79,7 +81,7 @@ namespace GlobalDescriptorWorker
                 Person agent = (Person)p[i];
                 var workserData = this.workers.ElementAt(i % this.workers.Count);
                 this.agents.Add(agent.GetId(), workserData.Key);
-                var msg = new BrokeredMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetHealthState(), 1));
+                var msg = new BrokeredMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1));
                 msg.ContentType = typeof(AddAgentMessage).Name;
                 workserData.Value.Send(msg);
             }
@@ -100,6 +102,27 @@ namespace GlobalDescriptorWorker
                 msg.ContentType = typeof(Message).Name;
                 c.Send(msg);
             }
+
+            isStarted = true;
+        }
+
+        private void infectAgent(int sourceAgentId)
+        {
+            if (this.agents.Count < 2)
+            {
+                Trace.TraceInformation("Warning: too litle agents");
+                return;
+            }
+
+            int idx = random.Next(0, this.agents.Count - 1);
+            var kvp = this.agents.ElementAt(idx);
+            QueueClient iClient = this.workers[kvp.Value];
+            var msg0 = new Message(this.guid, MessageType.Infect);
+            msg0.data = kvp.Key.ToString();
+            Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, kvp.Key);
+            var msg = new BrokeredMessage(msg0);
+            msg.ContentType = typeof(Message).Name;
+            iClient.Send(msg);
         }
 
         public override void Run()
@@ -128,11 +151,16 @@ namespace GlobalDescriptorWorker
 
                 if (message != null)
                 {
+                    Trace.TraceInformation("Received message of type: {0}", message.type);
                     switch(message.type)
                     {
                         case MessageType.Registration:
-                            QueueClient senderClient = QueueClient.CreateFromConnectionString(this.connectionString, message.senderId.ToString());
+                            QueueClient senderClient = QueueClient.CreateFromConnectionString(this.connectionString, message.senderId.ToString(), ReceiveMode.ReceiveAndDelete);
                             this.workers.Add(message.senderId, senderClient);
+                            break;
+                        case MessageType.Infect:
+                            if (isStarted)
+                                this.infectAgent(Int32.Parse(message.data));
                             break;
                     }
                 }
@@ -164,7 +192,7 @@ namespace GlobalDescriptorWorker
             {
                 namespaceManager.CreateQueue(this.queueName);
             }
-            client = QueueClient.CreateFromConnectionString(this.connectionString, this.queueName);
+            client = QueueClient.CreateFromConnectionString(this.connectionString, this.queueName, ReceiveMode.ReceiveAndDelete);
 
             bool result = base.OnStart();
 
@@ -181,7 +209,21 @@ namespace GlobalDescriptorWorker
             this.stopEvent.Set();
             this.runCompleteEvent.WaitOne();
 
+            while (client.Peek() != null)
+            {
+                Trace.TraceInformation("Cleaning message");
+                var brokeredMessage = client.Receive();
+                brokeredMessage.Complete();
+            }
             this.client.Close();
+
+            foreach(QueueClient c in this.workers.Values)
+            {
+                c.Close();
+            }
+
+            //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
+            //namespaceManager.DeleteQueue(this.queueName);
 
             base.OnStop();
 

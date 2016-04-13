@@ -35,25 +35,25 @@ namespace CloudSimulationWorker
 
         private static void fillContainers()
         {
-            Home home = new Home(50, 12);
+            Home home = new Home(0, 50, 12);
             Containers.Instance.Add(home); //Containers.Instance Ч глобальна€ коллекци€, содержаща€ контейнеры.
 
-            Hospital hospital = new Hospital(237, 19);
+            Hospital hospital = new Hospital(1, 237, 19);
             Containers.Instance.Add(hospital);
 
-            Mall mall = new Mall(578, 90);
+            Mall mall = new Mall(2, 578, 90);
             Containers.Instance.Add(mall);
 
-            Office office = new Office(236, 20);
+            Office office = new Office(3, 236, 20);
             Containers.Instance.Add(office);
 
-            University university = new University(300, 25);
+            University university = new University(4, 300, 25);
             Containers.Instance.Add(university);
 
-            School school = new School(250, 30);
+            School school = new School(5, 250, 30);
             Containers.Instance.Add(school);
 
-            Nursery nursery = new Nursery(60, 23);
+            Nursery nursery = new Nursery(6, 60, 23);
             Containers.Instance.Add(nursery);
 
         }
@@ -66,10 +66,11 @@ namespace CloudSimulationWorker
             //    namespaceManager.CreateQueue(this.globalDescriptorQueueName);
             //}
             Trace.TraceInformation("Sending registration...");
-            QueueClient client = QueueClient.CreateFromConnectionString(this.connectionString, this.globalDescriptorQueueName);
+            QueueClient client = QueueClient.CreateFromConnectionString(this.connectionString, this.globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
             var msg = new BrokeredMessage(new Message(this.guid, MessageType.Registration));
             msg.ContentType = typeof(Message).Name;
             client.Send(msg);
+            client.Close();
         }
 
         public override void Run()
@@ -101,6 +102,7 @@ namespace CloudSimulationWorker
                             break;
                         default:
                             message = receivedMessage.GetBody<Message>();
+                            Trace.TraceInformation("Subtype: {0}", message.type);
                             break;
                     }                    
                 }
@@ -116,6 +118,7 @@ namespace CloudSimulationWorker
                         case MessageType.AddAgent:
                             AddAgentMessage aaMessage = (AddAgentMessage)message;
                             List<IAgent> ags = new List<IAgent>();
+                            GlobalAgentDescriptorTable.GetNewId = aaMessage.agentId;
                             switch (aaMessage.agentType)
                             {
                                 case "Adolescent":
@@ -135,16 +138,25 @@ namespace CloudSimulationWorker
                                     break;
                             }
                             GlobalAgentDescriptorTable.AddAgents(ags);
+                            foreach (var ag in ags) {
+                                Trace.TraceInformation("Added agent with id {0} (check: {1})", ag.GetId(), aaMessage.agentId);
+                            }
                             break;
                         case MessageType.Start:
                             ThreadPool.QueueUserWorkItem((obj) =>
                             {
                                 AgentManagementSystem.RunAgents();
-                                Trace.TraceInformation("{0},{1},{2},{3},{4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                                Trace.TraceInformation("Results:\nSusceptible: {0}\nFuneral: {1}\nDead: {2}\nRecovered: {3}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
                                         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time);
                                 isFinished = true;
                             });
                             break;
+                        case MessageType.Infect:
+                            int agentId = Int32.Parse(message.data);
+                            var agent = GlobalAgentDescriptorTable.GetAgentById(agentId);
+                            agent.EventMessage(new CoreAMS.MessageTransportSystem.AgentMessage(Enums.MessageType.Infected.ToString(), -1, -1));
+                            break;
+
                     }
                 }
 
@@ -165,13 +177,14 @@ namespace CloudSimulationWorker
             ServicePointManager.DefaultConnectionLimit = 12;
 
             Trace.TraceInformation("My Guid: {0}", this.guid);
+            CoreAMS.MessageTransportSystem.MessageTransfer.guid = this.guid;
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
             if (!namespaceManager.QueueExists(this.guid.ToString()))
             {
                 namespaceManager.CreateQueue(this.guid.ToString());
             }
-            this.client = QueueClient.CreateFromConnectionString(this.connectionString, this.guid.ToString());
+            this.client = QueueClient.CreateFromConnectionString(this.connectionString, this.guid.ToString(), ReceiveMode.ReceiveAndDelete);
 
             bool result = base.OnStart();
 
@@ -187,6 +200,16 @@ namespace CloudSimulationWorker
             this.cancellationTokenSource.Cancel();
             this.stopEvent.Set();
             this.runCompleteEvent.WaitOne();
+
+            while (client.Peek() != null)
+            {
+                var brokeredMessage = client.Receive();
+                brokeredMessage.Complete();
+            }
+
+            this.client.Close();
+            //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
+            //namespaceManager.DeleteQueue(this.guid.ToString());
 
             base.OnStop();
 

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CoreAMS.AgentCore;
 using System.ComponentModel;
 using CoreAMS.Global;
+using System.Diagnostics;
 
 namespace CoreAMS.AgentManagementSystem
 {
@@ -49,8 +50,16 @@ namespace CoreAMS.AgentManagementSystem
 
                 RefreshAgentsStateCount();
 
+                Thread.Sleep(500);
+
                 // после того как все агенты за этот час изменили свои состояния, мы увеличиваем время
                 GlobalTime.Time += 1;
+                if (GlobalTime.Time % 24 == 0)
+                {
+                    Trace.TraceInformation("New day: {0}", GlobalTime.Day);
+                    Trace.TraceInformation("Susceptible: {0}\nFuneral: {1}\nDead: {2}\nRecovered: {3}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                            AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount);
+                }
 
                 if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {

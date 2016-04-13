@@ -10,10 +10,17 @@ namespace CoreAMS
     public abstract class ContainersCore
     {
         //заполнение параметров контейнера
-        protected ContainersCore(Enums.ContainerType containerType, double area, double dencity) {
+        protected ContainersCore(Enums.ContainerType containerType, int id, double area, double dencity) {
             this.containerType = containerType;
             this.area = area;
             this.dencity = dencity;
+            this.id = id;
+        }
+
+        protected int id;
+        public int Id
+        {
+            get { return this.id; }
         }
 
         protected Enums.ContainerType containerType;

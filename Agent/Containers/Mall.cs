@@ -9,7 +9,7 @@ namespace Agent.Containers
 {
     public class Mall : ContainersCore
     {
-        public Mall(double area, double dencity) : base(Enums.ContainerType.Mall, area, dencity) 
+        public Mall(int id, double area, double dencity) : base(Enums.ContainerType.Mall, id, area, dencity) 
         {
         
         }

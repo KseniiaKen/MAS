@@ -24,6 +24,13 @@ namespace CoreAMS.AgentManagementSystem
                 lock (threadLock) key++;
                 return key;
             }
+            set
+            {
+                lock (threadLock)
+                {
+                    key = value - 1;
+                }
+            }
         }
 
         // Добавляем агентов в общий каталог
@@ -63,27 +70,27 @@ namespace CoreAMS.AgentManagementSystem
         }
 
         // Получаем агента из той же локации для заражения
-        public static IAgent SameLocationAgent(int agentID)
-        {
-            IAgent agentInCurrentContainer = agentDictionary[agentID];
-            if (agentInCurrentContainer is AbstractPerson)
-            {
-                AbstractPerson abstractPerson = (AbstractPerson)agentInCurrentContainer;
-                ContainersCore currentContainer = abstractPerson.currentContainer; //текущий контейнер известен. Каждый контейнер хранит список агентов, находящихся в нём.
-                //TODO: Если кроме текущего агента в списке кто-то есть, то берём первого из них и его и возвращаем.
-                // Если никого нет, возвращаем null.
-                if (currentContainer.abstractPersonsInCurrentContainer.Count > 1)
-                {
-                    if (currentContainer.abstractPersonsInCurrentContainer.First() != abstractPerson) //сравниваем с текущим агентом (с abstractPerson)
-                    {
-                        return currentContainer.abstractPersonsInCurrentContainer.First();
-                    }
-                    else { return currentContainer.abstractPersonsInCurrentContainer.ElementAt(1); }
-                }
-                else { return null; }
-            }
-            else { return null; }
-        }
+        //public static IAgent SameLocationAgent(int agentID)
+        //{
+        //    IAgent agentInCurrentContainer = agentDictionary[agentID];
+        //    if (agentInCurrentContainer is AbstractPerson)
+        //    {
+        //        AbstractPerson abstractPerson = (AbstractPerson)agentInCurrentContainer;
+        //        ContainersCore currentContainer = abstractPerson.currentContainer; //текущий контейнер известен. Каждый контейнер хранит список агентов, находящихся в нём.
+        //        //TODO: Если кроме текущего агента в списке кто-то есть, то берём первого из них и его и возвращаем.
+        //        // Если никого нет, возвращаем null.
+        //        if (currentContainer.abstractPersonsInCurrentContainer.Count > 1)
+        //        {
+        //            if (currentContainer.abstractPersonsInCurrentContainer.First() != abstractPerson) //сравниваем с текущим агентом (с abstractPerson)
+        //            {
+        //                return currentContainer.abstractPersonsInCurrentContainer.First();
+        //            }
+        //            else { return currentContainer.abstractPersonsInCurrentContainer.ElementAt(1); }
+        //        }
+        //        else { return null; }
+        //    }
+        //    else { return null; }
+        //}
     }
 
     // Там, где был вызов метода GetRandomAgentExceptSenderAgentId, заменить на этот метод и учесть, что может вернуться null,

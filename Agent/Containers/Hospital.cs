@@ -9,7 +9,7 @@ namespace Agent.Containers
 {
     public class Hospital : ContainersCore
     {
-        public Hospital(double area, double dencity) : base(Enums.ContainerType.Hospital, area, dencity) 
+        public Hospital(int id, double area, double dencity) : base(Enums.ContainerType.Hospital, id, area, dencity) 
         { 
 
         }

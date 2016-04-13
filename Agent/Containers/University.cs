@@ -9,8 +9,8 @@ namespace Agent.Containers
 {
     public class University : ContainersCore
     {
-        public University(double area, double dencity)
-            : base(Enums.ContainerType.University, area, dencity)
+        public University(int id, double area, double dencity)
+            : base(Enums.ContainerType.University, id, area, dencity)
         { 
         
         }

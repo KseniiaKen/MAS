@@ -127,7 +127,7 @@ namespace Agent.Agents
         }
 
         // в каком контейнере должен быть агент в данный момент времени
-        private ContainersCore containerToGo() {
+        private int containerToGo() {
             while (true)
             {
                 for (int i = 0; i < locationProbabilities.Count; i++)
@@ -135,7 +135,7 @@ namespace Agent.Agents
                     var keyAndValue = locationProbabilities.ElementAt(i);
                     if (keyAndValue.Key.startTime <= GlobalTime.realTime && keyAndValue.Key.endTime > GlobalTime.realTime)
                     {
-                        if (r.NextDouble() < keyAndValue.Value) { return keyAndValue.Key.container; }
+                        if (r.NextDouble() < keyAndValue.Value) { return keyAndValue.Key.container.Id; }
                     }
 
                 }
@@ -154,14 +154,14 @@ namespace Agent.Agents
         // Запуск агента
         public override void Run()
         {
-            ContainersCore resOfContainerToGo = containerToGo();
-            if (currentContainer != resOfContainerToGo) {
-                if (currentContainer != null) {
-                    currentContainer.DeletePersonFromContainer(this);
-                }
-                resOfContainerToGo.AddPersonInContainer(this);
-                currentContainer = resOfContainerToGo;
-            }
+            //int resOfContainerToGo = containerToGo();
+            //if (currentContainer != resOfContainerToGo) {
+            //    if (currentContainer >= 0) {
+            //        currentContainer.DeletePersonFromContainer(this);
+            //    }
+            //    resOfContainerToGo.AddPersonInContainer(this);
+            //    currentContainer = resOfContainerToGo;
+            //}
 
             switch(healthState)
             {

@@ -11,3 +11,11 @@ AgentManagementSystemForm/VisualSimulation/obj/*
 CoreAMS/bin/*
 CoreAMS/obj/*
 VisualSimulation/bin/*
+CloudSimulation/bin/*
+CloudSimulation/obj/*
+CloudSimulation/csx/*
+CloudSimulationWorker/bin/*
+CloudSimulationWorker/obj/*
+GlobalDescriptorWorker/bin/*
+GlobalDescriptorWorker/obj/*
+packages/*

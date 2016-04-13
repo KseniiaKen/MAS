@@ -11,6 +11,7 @@ namespace CoreAMS.Messages
     {
         Registration = 0,
         AddAgent     = 1,
-        Start        = 2
+        Start        = 2,
+        Infect       = 3
     }
 }

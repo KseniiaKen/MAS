@@ -9,7 +9,7 @@ namespace Agent.Containers
 {
     public class Office : ContainersCore
     {
-        public Office(double area, double dencity) : base(Enums.ContainerType.Office, area, dencity) 
+        public Office(int id, double area, double dencity) : base(Enums.ContainerType.Office, id, area, dencity) 
         {
         
         }
