@@ -14,6 +14,7 @@ namespace CoreAMS.Messages
         Start        = 2,
         Infect       = 3,
         Tick         = 4,
-        TickEnd      = 5
+        TickEnd      = 5,
+        Results      = 6
     }
 }

@@ -32,11 +32,12 @@ namespace GlobalDescriptorWorker
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
-        System.Threading.Timer tickTimer;
+        private Thread tickThread;
 
         private QueueClient client;
         private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
-        private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
+        private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
+        private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
         private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
 
         private static void fillContainers()
@@ -93,13 +94,39 @@ namespace GlobalDescriptorWorker
 
         }
 
+        private void calculateResult()
+        {
+            int suspectableCount = 0;
+            int recoveredCount = 0;
+            int infectiousCount = 0;
+            int funeralCount = 0;
+            int deadCount = 0;
+            int time = 0;
+
+            foreach(ResultsMessage res in this.results.Values)
+            {
+                suspectableCount += res.suspectableCount;
+                recoveredCount += res.recoveredCount;
+                infectiousCount += res.infectiousCount;
+                funeralCount += res.funeralCount;
+                deadCount += res.deadCount;
+                time = (time >= res.time) ? time : res.time;
+            }
+
+            Trace.TraceInformation("Results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time);
+        }
+
         private void startTick()
         {
-            ThreadPool.QueueUserWorkItem((obj) =>
+            this.tickThread = new Thread((obj) =>
             {
                 while(true)
                 {
                     WaitHandle.WaitAll(this.waiters.Values.ToArray());
+
+                    if (this.results.Values.All((res) => res != null)) {
+                        break;
+                    }
 
                     foreach(QueueClient c in this.workers.Values)
                     {
@@ -109,6 +136,7 @@ namespace GlobalDescriptorWorker
                     }
                 }
             });
+            tickThread.Start();
 
             foreach(AutoResetEvent e in this.waiters.Values)
             {
@@ -169,7 +197,19 @@ namespace GlobalDescriptorWorker
                 Message message = null;
                 try
                 {
-                    message = receivedMessage.GetBody<Message>();
+                    switch (receivedMessage.ContentType)
+                    {
+                        case "Message":
+                            message = receivedMessage.GetBody<Message>();
+                            break;
+                        case "AddAgentMessage":
+                            Trace.TraceWarning("Unexpected message");
+                            break;
+                        case "ResultsMessage":
+                            message = receivedMessage.GetBody<ResultsMessage>();
+                            break;
+                    }
+                    
                 }
                 catch (Exception e)
                 {
@@ -185,6 +225,7 @@ namespace GlobalDescriptorWorker
                             QueueClient senderClient = QueueClient.CreateFromConnectionString(this.connectionString, message.senderId.ToString(), ReceiveMode.ReceiveAndDelete);
                             this.workers.Add(message.senderId, senderClient);
                             this.waiters.Add(message.senderId, new AutoResetEvent(false));
+                            this.results.Add(message.senderId, null);
                             break;
                         case MessageType.Infect:
                             if (isStarted)
@@ -193,6 +234,19 @@ namespace GlobalDescriptorWorker
                         case MessageType.TickEnd:
                             if (isStarted)
                                 this.waiters[message.senderId].Set();
+                            break;
+                        case MessageType.Results:
+                            if (isStarted)
+                            {
+                                this.results[message.senderId] = (ResultsMessage)message;
+                                if (this.results.Values.All((res) => res != null))
+                                {
+                                    this.calculateResult();
+
+                                    foreach (AutoResetEvent e in this.waiters.Values)
+                                        e.Set();
+                                }                                
+                            }
                             break;
                     }
                 }

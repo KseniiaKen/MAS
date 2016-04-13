@@ -31,6 +31,7 @@ namespace CloudSimulationWorker
         private string connectionString = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
         private string globalDescriptorQueueName = "GlobalDescriptor";
         private QueueClient client;
+        private QueueClient clientForGlobalDescriptor;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
 
         private static void fillContainers()
@@ -66,11 +67,9 @@ namespace CloudSimulationWorker
             //    namespaceManager.CreateQueue(this.globalDescriptorQueueName);
             //}
             Trace.TraceInformation("Sending registration...");
-            QueueClient client = QueueClient.CreateFromConnectionString(this.connectionString, this.globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
             var msg = new BrokeredMessage(new Message(this.guid, MessageType.Registration));
             msg.ContentType = typeof(Message).Name;
-            client.Send(msg);
-            client.Close();
+            clientForGlobalDescriptor.Send(msg);
         }
 
         public override void Run()
@@ -148,6 +147,19 @@ namespace CloudSimulationWorker
                                 AgentManagementSystem.RunAgents();
                                 Trace.TraceInformation("Results:\nSusceptible: {0}\nRecovered: {3}\nInfectious: {5}\nFuneral: {1}\nDead: {2}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
                                         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time, AgentManagementSystem.infectiousAgentsCount);
+
+                                var msg = new BrokeredMessage(new ResultsMessage(
+                                    this.guid,
+                                    AgentManagementSystem.susceptibleAgentsCount,
+                                    AgentManagementSystem.recoveredAgentsCount,
+                                    AgentManagementSystem.infectiousAgentsCount,
+                                    AgentManagementSystem.funeralAgentsCount,
+                                    AgentManagementSystem.deadAgentsCount,
+                                    GlobalTime.Time
+                                ));
+                                msg.ContentType = typeof(ResultsMessage).Name;
+                                this.clientForGlobalDescriptor.Send(msg);
+                                
                                 isFinished = true;
                             });
                             break;
@@ -189,6 +201,8 @@ namespace CloudSimulationWorker
             }
             this.client = QueueClient.CreateFromConnectionString(this.connectionString, this.guid.ToString(), ReceiveMode.ReceiveAndDelete);
 
+            this.clientForGlobalDescriptor = QueueClient.CreateFromConnectionString(this.connectionString, this.globalDescriptorQueueName);
+
             bool result = base.OnStart();
 
             Trace.TraceInformation("CloudSimulationWorker has been started");
@@ -213,6 +227,8 @@ namespace CloudSimulationWorker
             this.client.Close();
             //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
             //namespaceManager.DeleteQueue(this.guid.ToString());
+
+            this.clientForGlobalDescriptor.Close();
 
             CoreAMS.MessageTransportSystem.MessageTransfer.Dispose();
 

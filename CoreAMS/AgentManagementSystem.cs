@@ -64,12 +64,12 @@ namespace CoreAMS.AgentManagementSystem
                             AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
                 }
 
+                MessageTransportSystem.MessageTransfer.SendTickEnd();
+
                 if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {
                     break;
                 }
-
-                MessageTransportSystem.MessageTransfer.SendTickEnd();
             }
         }
 
