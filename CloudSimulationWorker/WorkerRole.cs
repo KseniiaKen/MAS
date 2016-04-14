@@ -66,7 +66,7 @@ namespace CloudSimulationWorker
             //{
             //    namespaceManager.CreateQueue(this.globalDescriptorQueueName);
             //}
-            Trace.TraceInformation("Sending registration...");
+            //Trace.TraceInformation("Sending registration...");
             var msg = new BrokeredMessage(new Message(this.guid, MessageType.Registration));
             msg.ContentType = typeof(Message).Name;
             clientForGlobalDescriptor.Send(msg);
@@ -85,7 +85,7 @@ namespace CloudSimulationWorker
                 Trace.TraceError("Error: {0}", e.Exception);
             };
 
-            Trace.WriteLine("Starting processing of messages");
+            //Trace.WriteLine("Starting processing of messages");
             // Start receiveing messages
             this.client.OnMessage((receivedMessage) => // Initiates the message pump and callback is invoked for each message that is recieved, calling close on the client will stop the pump.
             {
@@ -93,7 +93,7 @@ namespace CloudSimulationWorker
                 try
                 {
                     var ct = receivedMessage.ContentType;
-                    Trace.TraceInformation("ContentType: {0}", ct);
+                    //Trace.TraceInformation("ContentType: {0}", ct);
                     switch (ct)
                     {
                         case "AddAgentMessage":
@@ -101,7 +101,7 @@ namespace CloudSimulationWorker
                             break;
                         default:
                             message = receivedMessage.GetBody<Message>();
-                            Trace.TraceInformation("Subtype: {0}", message.type);
+                            //Trace.TraceInformation("Subtype: {0}", message.type);
                             break;
                     }                    
                 }
@@ -137,9 +137,9 @@ namespace CloudSimulationWorker
                                     break;
                             }
                             GlobalAgentDescriptorTable.AddAgents(ags);
-                            foreach (var ag in ags) {
-                                Trace.TraceInformation("Added agent with id {0} (check: {1})", ag.GetId(), aaMessage.agentId);
-                            }
+                            //foreach (var ag in ags) {
+                            //    Trace.TraceInformation("Added agent with id {0} (check: {1})", ag.GetId(), aaMessage.agentId);
+                            //}
                             break;
                         case MessageType.Start:
                             ThreadPool.QueueUserWorkItem((obj) =>
@@ -205,7 +205,7 @@ namespace CloudSimulationWorker
 
             bool result = base.OnStart();
 
-            Trace.TraceInformation("CloudSimulationWorker has been started");
+            //Trace.TraceInformation("CloudSimulationWorker has been started");
 
             return result;
         }
@@ -234,7 +234,7 @@ namespace CloudSimulationWorker
 
             base.OnStop();
 
-            Trace.TraceInformation("CloudSimulationWorker has stopped");
+            //Trace.TraceInformation("CloudSimulationWorker has stopped");
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)

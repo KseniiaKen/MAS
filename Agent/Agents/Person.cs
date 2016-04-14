@@ -26,7 +26,7 @@ namespace Agent.Agents
 
         private const double FUNERAL_PROBABILITY = 0.75; //вероятность смерти
         private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
-        private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
+        private const double INFECTION_PROBABILITY = 0.1; // вероятность заразиться при встрече с больным агентом
         private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
@@ -140,27 +140,24 @@ namespace Agent.Agents
 
                 }
             }
- /*           int[] a = new int[5]{1,2,3,4,5};
-            int x = 0;
-            for (int i=0; i < a.Length; i++) {
-                if (a[i] > 2) { x = a[i]; break; }
-                
-            }*/
-
         }
- 
 
-
-        // Запуск агента
-        public override void Run()
+        public override void Move()
         {
+            if (this.healthState == Enums.HealthState.Dead)
+                return;
+
             int resOfContainerToGo = containerToGo();
             if (currentContainer != resOfContainerToGo)
             {
                 currentContainer = resOfContainerToGo;
-                MessageTransfer.SendGoto(this.GetId(), resOfContainerToGo);
+                MessageTransfer.AddToGoto(this.GetId(), resOfContainerToGo);
             }
+        }
 
+        // Запуск агента
+        public override void Run()
+        {
             switch (healthState)
             {
                 case Enums.HealthState.Susceptible:

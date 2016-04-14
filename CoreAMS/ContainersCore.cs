@@ -1,6 +1,7 @@
 ﻿using CoreAMS.AgentCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,8 +56,16 @@ namespace CoreAMS
 
         public int GetRandomAgent()
         {
+            //Trace.TraceInformation("Agents in container: {0}", agentIdsInCurrentContainer.Count);
             int idx = this.random.Next(0, this.agentIdsInCurrentContainer.Count - 1);
             return agentIdsInCurrentContainer[idx];
+        }
+
+        public int AgentCount
+        {
+            get {
+                return this.agentIdsInCurrentContainer.Count;
+            }
         }
     }
 

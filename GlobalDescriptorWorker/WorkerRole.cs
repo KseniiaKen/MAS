@@ -28,6 +28,7 @@ namespace GlobalDescriptorWorker
         private string connectionString = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
         private string queueName = "GlobalDescriptor";
         private const int registerTimeout = 60000;
+        private const int waitTimeout = 30000;
         private Guid guid = Guid.NewGuid();
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
@@ -124,7 +125,13 @@ namespace GlobalDescriptorWorker
             {
                 while(true)
                 {
-                    WaitHandle.WaitAll(this.waiters.Values.ToArray());
+                    bool waitRes = WaitHandle.WaitAll(this.waiters.Values.ToArray(), waitTimeout);
+                    if (!waitRes)
+                    {
+                        Trace.TraceWarning("!!! Wait timeout !!!");
+                    }
+
+                    GlobalTime.Time += 1;
 
                     if (this.results.Values.All((res) => res != null)) {
                         break;
@@ -175,7 +182,22 @@ namespace GlobalDescriptorWorker
 
             ContainersCore currentContainer = this.agentLocations[sourceAgentId];
             if (currentContainer == null)
+            {
+                Trace.TraceInformation("Warning: no current container for {0}", sourceAgentId);
                 return;
+            }
+
+            if (currentContainer is Home)
+            {
+                // Trace.TraceInformation("Current container for {0} is Home", sourceAgentId);
+                return;
+            }
+
+            if (currentContainer.AgentCount < 2)
+            {
+                Trace.TraceInformation("Warning: noone in container for {0}", sourceAgentId);
+                return;
+            }
 
             int destAgentId = sourceAgentId;
             while (destAgentId == sourceAgentId)
@@ -186,7 +208,7 @@ namespace GlobalDescriptorWorker
             QueueClient iClient = this.workers[this.agents[destAgentId]];
             var msg0 = new Message(this.guid, MessageType.Infect);
             msg0.data = destAgentId.ToString();
-            Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
+            //Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
             var msg = new BrokeredMessage(msg0);
             msg.ContentType = typeof(Message).Name;
             iClient.Send(msg);
@@ -194,12 +216,13 @@ namespace GlobalDescriptorWorker
 
         private void gotoContainer(int agentId, int containerId)
         {
-            // Trace.TraceInformation("Go: {0} to {1}", agentId, containerId);
+            //if (agentId == 2)
+            //    Trace.TraceInformation("Go: {0} to {1} ; Time: {2}", agentId, containerId, GlobalTime.realTime);
 
             int idx = Containers.Instance.FindIndex((c) => c.Id == containerId);
             if (idx < 0)
             {
-                Trace.TraceWarning("Container with id {0} not found", containerId);
+                Trace.TraceWarning("Warning: Container with id {0} not found", containerId);
                 return;
             }
 
@@ -252,7 +275,7 @@ namespace GlobalDescriptorWorker
 
                 if (message != null)
                 {
-                    Trace.TraceInformation("Received message of type: {0}", message.type);
+                    //Trace.TraceInformation("Received message of type: {0}", message.type);
                     switch(message.type)
                     {
                         case MessageType.Registration:
@@ -286,7 +309,11 @@ namespace GlobalDescriptorWorker
                             if (isStarted)
                             {
                                 GoToContainerMessage gtMessage = (GoToContainerMessage)message;
-                                this.gotoContainer(gtMessage.agentId, gtMessage.containerId);
+                                for (int i = 0; i < gtMessage.agentIds.Length; i++)
+                                {
+                                    this.gotoContainer(gtMessage.agentIds[i], gtMessage.containerIds[i]);
+                                }
+                                this.waiters[message.senderId].Set();
                             }
                             break;
                     }

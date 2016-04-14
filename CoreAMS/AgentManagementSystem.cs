@@ -49,6 +49,7 @@ namespace CoreAMS.AgentManagementSystem
                 // запускаем каждый агент (агенты меняют свои состояния)
                 for (int i = 0; i < agents.Count; ++i)
                 {
+                    agents[i].Move();
                     agents[i].Run();
                 }
 
@@ -59,12 +60,16 @@ namespace CoreAMS.AgentManagementSystem
 
                 if (GlobalTime.Time % 24 == 0)
                 {
-                    Trace.TraceInformation("New day: {0}", GlobalTime.Day);
-                    Trace.TraceInformation("Susceptible: {0}\nRecovered: {3}\nInfectious: {4}\nFuneral: {1}\nDead: {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
-                            AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
+                    //Trace.TraceInformation("New day: {0}", GlobalTime.Day);
+                    //Trace.TraceInformation("Susceptible: {0}\nRecovered: {3}\nInfectious: {4}\nFuneral: {1}\nDead: {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                    //        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
+                    Trace.TraceInformation("{5}: {0} {3} {4} {1} {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount, GlobalTime.Day);
+
                 }
 
-                MessageTransportSystem.MessageTransfer.SendTickEnd();
+                //MessageTransportSystem.MessageTransfer.SendTickEnd();
+                MessageTransportSystem.MessageTransfer.SendGoto();
 
                 if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {

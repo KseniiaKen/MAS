@@ -8,6 +8,7 @@ using CoreAMS.AgentCore;
 using CoreAMS;
 using Microsoft.ServiceBus.Messaging;
 using CoreAMS.Messages;
+using System.Diagnostics;
 
 namespace CoreAMS.MessageTransportSystem
 {
@@ -64,11 +65,36 @@ namespace CoreAMS.MessageTransportSystem
             client.Send(msg);
         }
 
-        public static void SendGoto(int agentId, int containerId)
+        private static List<int> gotoAgents = new List<int>();
+        private static List<int> gotoContainers = new List<int>();
+
+        public static void AddToGoto(int agentId, int containerId)
         {
-            var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, agentId, containerId));
-            msg.ContentType = typeof(GoToContainerMessage).Name;
-            client.Send(msg);
+            lock (gotoAgents)
+            {
+                gotoAgents.Add(agentId);
+                gotoContainers.Add(containerId);
+            }
+        }
+
+        public static void SendGoto()
+        {
+            lock (gotoAgents)
+            {
+                if (gotoAgents.Count != gotoContainers.Count)
+                    Trace.TraceWarning("!!! Agent and container count doesn't match");
+                //return;
+
+                //if (gotoAgents.Count == 0)
+                //    return;
+
+                var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray()));
+
+                msg.ContentType = typeof(GoToContainerMessage).Name;
+                client.Send(msg);
+                gotoAgents.Clear();
+                gotoContainers.Clear();
+            }
         }
 
         public static void Dispose()

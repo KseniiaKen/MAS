@@ -14,6 +14,7 @@ namespace CoreAMS.AgentCore
         void SendMessage();
         void EventMessage(AgentMessage message);
         void Run();
+        void Move();
         void Stop();
     }
 
@@ -37,6 +38,8 @@ namespace CoreAMS.AgentCore
         public abstract void SendMessage();
 
         public abstract void EventMessage(AgentMessage message);
+
+        public abstract void Move();
 
         public abstract void Run();
 

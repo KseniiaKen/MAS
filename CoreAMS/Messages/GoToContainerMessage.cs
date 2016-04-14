@@ -9,13 +9,13 @@ namespace CoreAMS.Messages
     [Serializable]
     public class GoToContainerMessage : Message
     {
-        public int agentId;
-        public int containerId;
+        public int[] agentIds;
+        public int[] containerIds;
 
-        public GoToContainerMessage(Guid senderId, MessageType type, int agentId, int containerId): base(senderId, MessageType.GoTo)
+        public GoToContainerMessage(Guid senderId, MessageType type, int[] agentIds, int[] containerIds): base(senderId, MessageType.GoTo)
         {
-            this.agentId = agentId;
-            this.containerId = containerId;
+            this.agentIds = agentIds;
+            this.containerIds = containerIds;
         }
     }
 }
