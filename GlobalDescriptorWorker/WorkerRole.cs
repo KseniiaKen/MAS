@@ -29,11 +29,13 @@ namespace GlobalDescriptorWorker
         private string queueName = "GlobalDescriptor";
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
+        private const int numberOfIterations = 80;
         private Guid guid = Guid.NewGuid();
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
         private Thread tickThread;
+        private int iterationNum = 0;
 
         private QueueClient client;
         private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
@@ -41,6 +43,7 @@ namespace GlobalDescriptorWorker
         private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
         private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
         private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
+        private List<int[]> totalResult = new List<int[]>();
 
         private static void fillContainers()
         {
@@ -116,7 +119,28 @@ namespace GlobalDescriptorWorker
                 time = (time >= res.time) ? time : res.time;
             }
 
-            Trace.TraceInformation("Results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time);
+            this.totalResult.Add(new int[6] {
+                suspectableCount,
+                recoveredCount,
+                infectiousCount,
+                funeralCount,
+                deadCount,
+                time
+            });
+
+            Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum);
+        }
+
+        private void calculateTotalResult()
+        {
+            double suspectableCount = this.totalResult.Select((d) => d[0]).Average();
+            double recoveredCount = this.totalResult.Select((d) => d[1]).Average();
+            double infectiousCount = this.totalResult.Select((d) => d[2]).Average();
+            double funeralCount = this.totalResult.Select((d) => d[3]).Average();
+            double deadCount = this.totalResult.Select((d) => d[4]).Average();
+            double time = this.totalResult.Select((d) => d[5]).Average();
+
+            Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time);
         }
 
         private void startTick()
@@ -155,6 +179,8 @@ namespace GlobalDescriptorWorker
 
         public void Run2()
         {
+            this.iterationNum++;
+
             fillContainers();
             fillAgents();
 
@@ -168,6 +194,58 @@ namespace GlobalDescriptorWorker
             startTick();
 
             isStarted = true;
+            Trace.TraceInformation("Started: {0}", this.iterationNum);
+        }
+
+        private void start()
+        {
+            ThreadPool.QueueUserWorkItem((obj) =>
+            {
+                Thread.Sleep(registerTimeout);
+
+                Trace.TraceInformation("Workers:");
+                foreach (Guid g in this.workers.Keys)
+                {
+                    Trace.TraceInformation("\t{0}", g);
+                }
+                this.Run2();
+            });
+        }
+
+        private void restart()
+        {
+            foreach (AutoResetEvent e in this.waiters.Values)
+                e.Set();
+
+            foreach (QueueClient c in this.workers.Values)
+            {
+                var msg = new BrokeredMessage(new Message(this.guid, MessageType.Clear));
+                msg.ContentType = typeof(Message).Name;
+                c.Send(msg);
+            }
+
+            Containers.Instance.Clear();
+            this.agents.Clear();
+            this.agentLocations.Clear();
+
+            for (int i = 0; i < this.results.Count; i++)
+            {
+                var key = this.results.ElementAt(i).Key;
+                this.results[key] = null;
+            }
+
+            if (this.iterationNum >= numberOfIterations)
+            {
+                this.calculateTotalResult();
+                return;
+            }
+
+            Trace.TraceInformation("Restarting...");
+
+            foreach (var w in this.waiters.Values)
+                w.Reset();
+
+            this.start();
         }
 
         private void infectOtherAgent(int sourceAgentId)
@@ -298,10 +376,11 @@ namespace GlobalDescriptorWorker
                                 this.results[message.senderId] = (ResultsMessage)message;
                                 if (this.results.Values.All((res) => res != null))
                                 {
+                                    this.isStarted = false;
+
                                     this.calculateResult();
 
-                                    foreach (AutoResetEvent e in this.waiters.Values)
-                                        e.Set();
+                                    this.restart();
                                 }                                
                             }
                             break;
@@ -328,17 +407,7 @@ namespace GlobalDescriptorWorker
 
             });
 
-            ThreadPool.QueueUserWorkItem((obj) =>
-            {
-                Thread.Sleep(registerTimeout);
-
-                Trace.TraceInformation("Workers:");
-                foreach (Guid g in this.workers.Keys)
-                {
-                    Trace.TraceInformation("\t{0}", g);
-                }
-                this.Run2();
-            });
+            this.start();
 
             this.stopEvent.WaitOne();
         }

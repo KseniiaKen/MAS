@@ -16,6 +16,7 @@ namespace CoreAMS.Messages
         Tick         = 4,
         TickEnd      = 5,
         Results      = 6,
-        GoTo         = 7
+        GoTo         = 7,
+        Clear        = 8
     }
 }

@@ -171,6 +171,10 @@ namespace CloudSimulationWorker
                         case MessageType.Tick:
                             AgentManagementSystem.NextTimeEvent.Set();
                             break;
+                        case MessageType.Clear:
+                            GlobalAgentDescriptorTable.deleteAllAgents();
+                            GlobalTime.Time = 0;
+                            break;
 
                     }
                 }
