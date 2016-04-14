@@ -11,11 +11,13 @@ namespace CoreAMS.Messages
     {
         public int[] agentIds;
         public int[] containerIds;
+        public int[] infectionSourceAgentIds;
 
-        public GoToContainerMessage(Guid senderId, MessageType type, int[] agentIds, int[] containerIds): base(senderId, MessageType.GoTo)
+        public GoToContainerMessage(Guid senderId, MessageType type, int[] agentIds, int[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
         {
             this.agentIds = agentIds;
             this.containerIds = containerIds;
+            this.infectionSourceAgentIds = infectionSourceAgentIds;
         }
     }
 }

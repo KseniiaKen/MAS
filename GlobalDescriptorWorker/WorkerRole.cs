@@ -170,7 +170,7 @@ namespace GlobalDescriptorWorker
             isStarted = true;
         }
 
-        private void infectAgent(int sourceAgentId)
+        private void infectOtherAgent(int sourceAgentId)
         {
             if (this.agents.Count < 2)
             {
@@ -275,7 +275,7 @@ namespace GlobalDescriptorWorker
 
                 if (message != null)
                 {
-                    //Trace.TraceInformation("Received message of type: {0}", message.type);
+                    // Trace.TraceInformation("Received message of type: {0}", message.type);
                     switch(message.type)
                     {
                         case MessageType.Registration:
@@ -286,7 +286,7 @@ namespace GlobalDescriptorWorker
                             break;
                         case MessageType.Infect:
                             if (isStarted)
-                                this.infectAgent(Int32.Parse(message.data));
+                                this.infectOtherAgent(Int32.Parse(message.data));
                             break;
                         case MessageType.TickEnd:
                             if (isStarted)
@@ -309,10 +309,17 @@ namespace GlobalDescriptorWorker
                             if (isStarted)
                             {
                                 GoToContainerMessage gtMessage = (GoToContainerMessage)message;
+
+                                foreach (int agentId in gtMessage.infectionSourceAgentIds)
+                                {
+                                    this.infectOtherAgent(agentId);
+                                }
+
                                 for (int i = 0; i < gtMessage.agentIds.Length; i++)
                                 {
                                     this.gotoContainer(gtMessage.agentIds[i], gtMessage.containerIds[i]);
                                 }
+
                                 this.waiters[message.senderId].Set();
                             }
                             break;

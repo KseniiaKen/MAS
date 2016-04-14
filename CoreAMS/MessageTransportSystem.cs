@@ -35,28 +35,23 @@ namespace CoreAMS.MessageTransportSystem
 
         private static QueueClient client = QueueClient.CreateFromConnectionString(connectionString, globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
 
+        private static List<int> infectedAgents = new List<int>();
         // Отправка сообщения случайному агенту
-        public static void MessageAgentToRandomAgent(AgentMessage message)
+        public static void AddInfect(AgentMessage message)
         {
-            //IAgent agent = GlobalAgentDescriptorTable.SameLocationAgent(message.senderAgentId);
-            ////IAgent agent = GlobalAgentDescriptorTable.GetRandomAgentExceptSenderAgentId(message.senderAgentId);
-            //if (agent != null)
-            //{
-            //    agent.EventMessage(new AgentMessage(Enums.MessageType.Infected.ToString(), -1, message.senderAgentId));
-            //}
+            //var msg0 = new Message(guid, MessageType.Infect);
+            //msg0.data = message.senderAgentId.ToString();
+            //var msg = new BrokeredMessage(msg0);
+            //msg.ContentType = typeof(Message).Name;
+            //client.Send(msg);
 
-            var msg0 = new Message(guid, MessageType.Infect);
-            msg0.data = message.senderAgentId.ToString();
-            var msg = new BrokeredMessage(msg0);
-            msg.ContentType = typeof(Message).Name;
-            client.Send(msg);
+            lock (gotoAgents)
+            {
+                infectedAgents.Add(message.senderAgentId);
+            }
         }
 
         //Нам нужен метод, отправляющий сообщения о заражении не случайным агентам, а находящимся в одной локации.
-
-        public static void MessageAgentInThisLocation(AgentMessage message) { 
-                    
-        }
 
         public static void SendTickEnd()
         {            
@@ -88,12 +83,13 @@ namespace CoreAMS.MessageTransportSystem
                 //if (gotoAgents.Count == 0)
                 //    return;
 
-                var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray()));
+                var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray(), infectedAgents.ToArray()));
 
                 msg.ContentType = typeof(GoToContainerMessage).Name;
                 client.Send(msg);
                 gotoAgents.Clear();
                 gotoContainers.Clear();
+                infectedAgents.Clear();
             }
         }
 

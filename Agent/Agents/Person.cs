@@ -26,7 +26,7 @@ namespace Agent.Agents
 
         private const double FUNERAL_PROBABILITY = 0.75; //вероятность смерти
         private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
-        private const double INFECTION_PROBABILITY = 0.1; // вероятность заразиться при встрече с больным агентом
+        private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
         private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
@@ -112,7 +112,7 @@ namespace Agent.Agents
             // выбираем случайного агента и отправляем ему сообщение, что он инфицирован
             if (r.Next(0, 99) <= 100 * INFECTION_PROBABILITY)
             {
-                MessageTransfer.MessageAgentToRandomAgent(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
+                MessageTransfer.AddInfect(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
             }
         }
 
