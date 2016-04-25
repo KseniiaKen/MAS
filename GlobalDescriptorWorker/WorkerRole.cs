@@ -25,8 +25,6 @@ namespace GlobalDescriptorWorker
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
-        private string connectionString = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
-        private string queueName = "GlobalDescriptor";
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
         private const int numberOfIterations = 80;
@@ -37,8 +35,7 @@ namespace GlobalDescriptorWorker
         private Thread tickThread;
         private int iterationNum = 0;
 
-        private QueueClient client;
-        private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
+        private List<Guid> workers = new List<Guid>();
         private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
         private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
         private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
@@ -87,12 +84,11 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < p.Count; i++)
             {
                 Person agent = (Person)p[i];
-                var workserData = this.workers.ElementAt(i % this.workers.Count);
-                this.agents.Add(agent.GetId(), workserData.Key);
+                Guid workerId = this.workers.ElementAt(i % this.workers.Count);
+                this.agents.Add(agent.GetId(), workerId);
                 this.agentLocations.Add(agent.GetId(), null);
-                var msg = new BrokeredMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1));
-                msg.ContentType = typeof(AddAgentMessage).Name;
-                workserData.Value.Send(msg);
+
+                MessageTransportSystem.Instance.SendMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1), workerId);
             }
 
             //GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
@@ -161,12 +157,7 @@ namespace GlobalDescriptorWorker
                         break;
                     }
 
-                    foreach(QueueClient c in this.workers.Values)
-                    {
-                        var msg = new BrokeredMessage(new Message(this.guid, MessageType.Tick));
-                        msg.ContentType = typeof(Message).Name;
-                        c.Send(msg);
-                    }
+                    MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Tick));
                 }
             });
             tickThread.Start();
@@ -184,12 +175,7 @@ namespace GlobalDescriptorWorker
             fillContainers();
             fillAgents();
 
-            foreach (QueueClient c in this.workers.Values)
-            {
-                var msg = new BrokeredMessage(new Message(this.guid, MessageType.Start));
-                msg.ContentType = typeof(Message).Name;
-                c.Send(msg);
-            }
+            MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Start));
 
             startTick();
 
@@ -204,7 +190,7 @@ namespace GlobalDescriptorWorker
                 Thread.Sleep(registerTimeout);
 
                 Trace.TraceInformation("Workers:");
-                foreach (Guid g in this.workers.Keys)
+                foreach (Guid g in this.workers)
                 {
                     Trace.TraceInformation("\t{0}", g);
                 }
@@ -217,12 +203,7 @@ namespace GlobalDescriptorWorker
             foreach (AutoResetEvent e in this.waiters.Values)
                 e.Set();
 
-            foreach (QueueClient c in this.workers.Values)
-            {
-                var msg = new BrokeredMessage(new Message(this.guid, MessageType.Clear));
-                msg.ContentType = typeof(Message).Name;
-                c.Send(msg);
-            }
+            MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Clear));
 
             Containers.Instance.Clear();
             this.agents.Clear();
@@ -283,13 +264,11 @@ namespace GlobalDescriptorWorker
                 destAgentId = currentContainer.GetRandomAgent();
             }
 
-            QueueClient iClient = this.workers[this.agents[destAgentId]];
+            Guid clientId = this.agents[destAgentId];
             var msg0 = new Message(this.guid, MessageType.Infect);
             msg0.data = destAgentId.ToString();
             //Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
-            var msg = new BrokeredMessage(msg0);
-            msg.ContentType = typeof(Message).Name;
-            iClient.Send(msg);
+            MessageTransportSystem.Instance.SendMessage(msg0, clientId);
         }
 
         private void gotoContainer(int agentId, int containerId)
@@ -314,115 +293,78 @@ namespace GlobalDescriptorWorker
 
         public override void Run()
         {
-            OnMessageOptions options = new OnMessageOptions();
-            options.AutoComplete = true; // Indicates if the message-pump should call complete on messages after the callback has completed processing.
-            options.MaxConcurrentCalls = 1; // Indicates the maximum number of concurrent calls to the callback the pump should initiate 
-            options.ExceptionReceived += (sender, e) =>
-            {
-                Trace.TraceError("Error: {0}", e.Exception);
-            };
+            MessageTransportSystem.Instance.OnRegistrationMessage += onRegistrationMessage;
+            MessageTransportSystem.Instance.OnInfectMessage += onInfectMessage;
+            MessageTransportSystem.Instance.OnTickEndMessage += onTickEndMessage;
+            MessageTransportSystem.Instance.OnResultsMessage += onResultsMessage;
+            MessageTransportSystem.Instance.OnGotoMessage += onGotoMessage;
 
-            Trace.WriteLine("Starting processing of messages");
-            // Start receiveing messages
-            this.client.OnMessage((receivedMessage) => // Initiates the message pump and callback is invoked for each message that is recieved, calling close on the client will stop the pump.
-            {
-                Message message = null;
-                try
-                {
-                    switch (receivedMessage.ContentType)
-                    {
-                        case "Message":
-                            message = receivedMessage.GetBody<Message>();
-                            break;
-                        case "AddAgentMessage":
-                            Trace.TraceWarning("Unexpected message");
-                            break;
-                        case "ResultsMessage":
-                            message = receivedMessage.GetBody<ResultsMessage>();
-                            break;
-                        case "GoToContainerMessage":
-                            message = receivedMessage.GetBody<GoToContainerMessage>();
-                            break;
-                    }
-                    
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError("Error: {0}", e);
-                }
-
-                if (message != null)
-                {
-                    // Trace.TraceInformation("Received message of type: {0}", message.type);
-                    switch(message.type)
-                    {
-                        case MessageType.Registration:
-                            QueueClient senderClient = QueueClient.CreateFromConnectionString(this.connectionString, message.senderId.ToString(), ReceiveMode.ReceiveAndDelete);
-                            this.workers.Add(message.senderId, senderClient);
-                            this.waiters.Add(message.senderId, new AutoResetEvent(false));
-                            this.results.Add(message.senderId, null);
-                            break;
-                        case MessageType.Infect:
-                            if (isStarted)
-                                this.infectOtherAgent(Int32.Parse(message.data));
-                            break;
-                        case MessageType.TickEnd:
-                            if (isStarted)
-                                this.waiters[message.senderId].Set();
-                            break;
-                        case MessageType.Results:
-                            if (isStarted)
-                            {
-                                this.results[message.senderId] = (ResultsMessage)message;
-                                if (this.results.Values.All((res) => res != null))
-                                {
-                                    this.isStarted = false;
-
-                                    this.calculateResult();
-
-                                    this.restart();
-                                }                                
-                            }
-                            break;
-                        case MessageType.GoTo:
-                            if (isStarted)
-                            {
-                                GoToContainerMessage gtMessage = (GoToContainerMessage)message;
-
-                                foreach (int agentId in gtMessage.infectionSourceAgentIds)
-                                {
-                                    this.infectOtherAgent(agentId);
-                                }
-
-                                for (int i = 0; i < gtMessage.agentIds.Length; i++)
-                                {
-                                    this.gotoContainer(gtMessage.agentIds[i], gtMessage.containerIds[i]);
-                                }
-
-                                this.waiters[message.senderId].Set();
-                            }
-                            break;
-                    }
-                }
-
-            });
+            MessageTransportSystem.Instance.StartListening();
 
             this.start();
 
             this.stopEvent.WaitOne();
         }
 
+        private void onGotoMessage(Message message)
+        {
+            if (isStarted && this.workers.Contains(message.senderId))
+            {
+                GoToContainerMessage gtMessage = (GoToContainerMessage)message;
+
+                foreach (int agentId in gtMessage.infectionSourceAgentIds)
+                {
+                    this.infectOtherAgent(agentId);
+                }
+
+                for (int i = 0; i < gtMessage.agentIds.Length; i++)
+                {
+                    this.gotoContainer(gtMessage.agentIds[i], gtMessage.containerIds[i]);
+                }
+
+                this.waiters[message.senderId].Set();
+            }
+        }
+
+        private void onResultsMessage(Message message)
+        {
+            if (isStarted)
+            {
+                this.results[message.senderId] = (ResultsMessage)message;
+                if (this.results.Values.All((res) => res != null))
+                {
+                    this.isStarted = false;
+
+                    this.calculateResult();
+
+                    this.restart();
+                }
+            }
+        }
+
+        private void onInfectMessage(Message message)
+        {
+            if (isStarted)
+                this.infectOtherAgent(Int32.Parse(message.data));
+        }
+
+        private void onTickEndMessage(Message message)
+        {
+            if (isStarted)
+                this.waiters[message.senderId].Set();
+        }
+
+        private void onRegistrationMessage(Message message)
+        {
+            this.workers.Add(message.senderId);
+            this.waiters.Add(message.senderId, new AutoResetEvent(false));
+            this.results.Add(message.senderId, null);
+        }
+
         public override bool OnStart()
         {
-            // Set the maximum number of concurrent connections
-            ServicePointManager.DefaultConnectionLimit = 12;
-
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
-            if (!namespaceManager.QueueExists(this.queueName))
-            {
-                namespaceManager.CreateQueue(this.queueName);
-            }
-            client = QueueClient.CreateFromConnectionString(this.connectionString, this.queueName, ReceiveMode.ReceiveAndDelete);
+            // Set the maximum number of concurrent connections            
+            MessageTransportSystem.Instance.Init();
 
             bool result = base.OnStart();
 
@@ -439,18 +381,7 @@ namespace GlobalDescriptorWorker
             this.stopEvent.Set();
             this.runCompleteEvent.WaitOne();
 
-            while (client.Peek() != null)
-            {
-                Trace.TraceInformation("Cleaning message");
-                var brokeredMessage = client.Receive();
-                brokeredMessage.Complete();
-            }
-            this.client.Close();
-
-            foreach(QueueClient c in this.workers.Values)
-            {
-                c.Close();
-            }
+            MessageTransportSystem.Instance.DeInit();
 
             //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
             //namespaceManager.DeleteQueue(this.queueName);
