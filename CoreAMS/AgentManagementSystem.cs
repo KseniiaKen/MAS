@@ -69,7 +69,7 @@ namespace CoreAMS.AgentManagementSystem
                 }
 
                 //MessageTransportSystem.MessageTransfer.SendTickEnd();
-                MessageTransportSystem.MessageTransfer.SendGoto();
+                MessageTransportSystem.MessageTransfer.Instance.SendGoto();
 
                 if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
                 {

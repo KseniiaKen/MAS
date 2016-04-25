@@ -9,25 +9,25 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GlobalDescriptorWorker
+namespace CloudSimulationWorker
 {
     public class MessageTransportSystem : CoreAMS.MessageTransportSystem.IMessageTransportSystem
     {
-        private const string NODE_ID = "GlobalDescriptor";
-        private static Guid guid = Guid.NewGuid();
+        private static Guid NODE_ID = Guid.NewGuid();
+        private const string GLOBAL_DESCRIPTOR_QUEUE_NAME = "GlobalDescriptor";
         private const string CONNECTION_STRING = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
 
         public delegate void MessageEventHandler(Message message);
-        public event MessageEventHandler OnRegistrationMessage;
+        public event MessageEventHandler OnAddAgentMessage;
+        public event MessageEventHandler OnStartMessage;
         public event MessageEventHandler OnInfectMessage;
-        public event MessageEventHandler OnGotoMessage;
-        public event MessageEventHandler OnResultsMessage;
-        public event MessageEventHandler OnTickEndMessage;
+        public event MessageEventHandler OnTickMessage;
+        public event MessageEventHandler OnClearMessage;
 
         private static MessageTransportSystem instance = new MessageTransportSystem();
 
         private QueueClient client;
-        private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
+        private QueueClient globalDescriptorClient;
 
         public static MessageTransportSystem Instance
         {
@@ -46,7 +46,7 @@ namespace GlobalDescriptorWorker
         {
             get
             {
-                return guid;
+                return NODE_ID;
             }
         }
 
@@ -55,11 +55,13 @@ namespace GlobalDescriptorWorker
             ServicePointManager.DefaultConnectionLimit = 12;
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(CONNECTION_STRING);
-            if (!namespaceManager.QueueExists(NODE_ID))
+            if (!namespaceManager.QueueExists(NODE_ID.ToString()))
             {
-                namespaceManager.CreateQueue(NODE_ID);
+                namespaceManager.CreateQueue(NODE_ID.ToString());
             }
-            this.client = QueueClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID, ReceiveMode.ReceiveAndDelete);
+            this.client = QueueClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID.ToString(), ReceiveMode.ReceiveAndDelete);
+
+            this.globalDescriptorClient = QueueClient.CreateFromConnectionString(CONNECTION_STRING, GLOBAL_DESCRIPTOR_QUEUE_NAME);
         }
 
         public void DeInit()
@@ -73,11 +75,8 @@ namespace GlobalDescriptorWorker
                     brokeredMessage.Complete();
                 }
                 this.client.Close();
-            }
 
-            foreach (QueueClient c in this.workers.Values)
-            {
-                c.Close();
+                this.globalDescriptorClient.Close();
             }
         }
 
@@ -104,13 +103,11 @@ namespace GlobalDescriptorWorker
                             message = receivedMessage.GetBody<Message>();
                             break;
                         case "AddAgentMessage":
-                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
+                            message = receivedMessage.GetBody<AddAgentMessage>();
                             break;
                         case "ResultsMessage":
-                            message = receivedMessage.GetBody<ResultsMessage>();
-                            break;
                         case "GoToContainerMessage":
-                            message = receivedMessage.GetBody<GoToContainerMessage>();
+                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
                             break;
                     }
                 }
@@ -125,71 +122,50 @@ namespace GlobalDescriptorWorker
                     switch (message.type)
                     {
                         case MessageType.AddAgent:
-                        case MessageType.Clear:
-                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
+                            if (this.OnAddAgentMessage != null)
+                                this.OnAddAgentMessage(message);
+                            break;
+                        case MessageType.Clear: 
+                            if (this.OnClearMessage != null)
+                                this.OnClearMessage(message);
                             break;
                         case MessageType.GoTo:
-                            if (this.OnGotoMessage != null)
-                                this.OnGotoMessage(message);
+                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
                             break;
                         case MessageType.Infect:
                             if (this.OnInfectMessage != null)
                                 this.OnInfectMessage(message);
                             break;
                         case MessageType.Registration:
-                            this.addClient(message.senderId);
-                            if (this.OnRegistrationMessage != null)
-                                this.OnRegistrationMessage(message);
-                            break;
                         case MessageType.Results:
-                            if (this.OnResultsMessage != null)
-                                this.OnResultsMessage(message);
-                            break;
-                        case MessageType.Start:
-                        case MessageType.Tick:
                             Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
                             break;
+                        case MessageType.Start:
+                            if (this.OnStartMessage != null)
+                                this.OnStartMessage(message);
+                            break;
+                        case MessageType.Tick:
+                            if (this.OnTickMessage != null)
+                                this.OnTickMessage(message);
+                            break;
                         case MessageType.TickEnd:
-                            if (this.OnTickEndMessage != null)
-                                this.OnTickEndMessage(message);
+                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
                             break;
                     }
                 }
             });
         }
 
-        private void addClient(Guid clientId)
+        public void SendMessage(Message message)
         {
-            QueueClient clientClient = QueueClient.CreateFromConnectionString(CONNECTION_STRING, clientId.ToString(), ReceiveMode.ReceiveAndDelete);
-            this.workers.Add(clientId, clientClient);
+            var msg = new BrokeredMessage(message);
+            msg.ContentType = message.GetType().Name;
+            this.globalDescriptorClient.Send(msg);
         }
 
-        public void SendMessage(Message message)
+        public void SendMessage(Message message, Guid clientId)
         {
             throw new NotImplementedException("MessageTransportSystem.SendMessage is not implemented");
         }
-
-        public void SendMessage(Message message, Guid workerId)
-        {
-            QueueClient workerData = this.workers[workerId];
-
-            if (workerData != null)
-            {
-                var msg = new BrokeredMessage(message);
-                msg.ContentType = message.GetType().Name;
-                workerData.Send(msg);
-            }
-        }
-
-        public void SendEveryone(Message message)
-        {
-            foreach (QueueClient c in this.workers.Values)
-            {
-                var msg = new BrokeredMessage(message);
-                msg.ContentType = message.GetType().Name;
-                c.Send(msg);
-            }
-        }
-
     }
 }

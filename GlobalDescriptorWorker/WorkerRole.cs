@@ -28,7 +28,6 @@ namespace GlobalDescriptorWorker
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
         private const int numberOfIterations = 80;
-        private Guid guid = Guid.NewGuid();
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
@@ -88,7 +87,7 @@ namespace GlobalDescriptorWorker
                 this.agents.Add(agent.GetId(), workerId);
                 this.agentLocations.Add(agent.GetId(), null);
 
-                MessageTransportSystem.Instance.SendMessage(new AddAgentMessage(this.guid, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1), workerId);
+                MessageTransportSystem.Instance.SendMessage(new AddAgentMessage(MessageTransportSystem.Instance.Id, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1), workerId);
             }
 
             //GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
@@ -157,7 +156,7 @@ namespace GlobalDescriptorWorker
                         break;
                     }
 
-                    MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Tick));
+                    MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Tick));
                 }
             });
             tickThread.Start();
@@ -175,7 +174,7 @@ namespace GlobalDescriptorWorker
             fillContainers();
             fillAgents();
 
-            MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Start));
+            MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Start));
 
             startTick();
 
@@ -203,7 +202,7 @@ namespace GlobalDescriptorWorker
             foreach (AutoResetEvent e in this.waiters.Values)
                 e.Set();
 
-            MessageTransportSystem.Instance.SendEveryone(new Message(this.guid, MessageType.Clear));
+            MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Clear));
 
             Containers.Instance.Clear();
             this.agents.Clear();
@@ -265,7 +264,7 @@ namespace GlobalDescriptorWorker
             }
 
             Guid clientId = this.agents[destAgentId];
-            var msg0 = new Message(this.guid, MessageType.Infect);
+            var msg0 = new Message(MessageTransportSystem.Instance.Id, MessageType.Infect);
             msg0.data = destAgentId.ToString();
             //Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
             MessageTransportSystem.Instance.SendMessage(msg0, clientId);

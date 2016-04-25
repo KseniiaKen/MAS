@@ -26,18 +26,39 @@ namespace CoreAMS.MessageTransportSystem
         }
     }
 
-    // обмен сообщениями между агентами
-    public static class MessageTransfer
+    public interface IMessageTransportSystem
     {
-        private const string connectionString = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
-        private const string globalDescriptorQueueName = "GlobalDescriptor";
-        public static Guid guid;
+        Guid Id { get; }
+        void SendMessage(Message message);
+        void SendMessage(Message message, Guid clientId);
+        void StartListening();
+    }
 
-        private static QueueClient client = QueueClient.CreateFromConnectionString(connectionString, globalDescriptorQueueName, ReceiveMode.ReceiveAndDelete);
+    // обмен сообщениями между агентами
+    public class MessageTransfer
+    {
+        private static MessageTransfer instance = new MessageTransfer();
 
-        private static List<int> infectedAgents = new List<int>();
+        private IMessageTransportSystem transportSystem;
+        private List<int> infectedAgents = new List<int>();
+        private List<int> gotoAgents = new List<int>();
+        private List<int> gotoContainers = new List<int>();
+
+        public static MessageTransfer Instance
+        {
+            get
+            {
+                return instance; 
+            }
+        }
+
+        public void Init(IMessageTransportSystem messageTransportSystem)
+        {
+            this.transportSystem = messageTransportSystem;
+        }
+
         // Отправка сообщения случайному агенту
-        public static void AddInfect(AgentMessage message)
+        public void AddInfect(AgentMessage message)
         {
             //var msg0 = new Message(guid, MessageType.Infect);
             //msg0.data = message.senderAgentId.ToString();
@@ -53,17 +74,12 @@ namespace CoreAMS.MessageTransportSystem
 
         //Нам нужен метод, отправляющий сообщения о заражении не случайным агентам, а находящимся в одной локации.
 
-        public static void SendTickEnd()
+        public void SendTickEnd()
         {            
-            var msg = new BrokeredMessage(new Message(guid, MessageType.TickEnd));
-            msg.ContentType = typeof(Message).Name;
-            client.Send(msg);
+            this.transportSystem.SendMessage(new Message(this.transportSystem.Id, MessageType.TickEnd));
         }
 
-        private static List<int> gotoAgents = new List<int>();
-        private static List<int> gotoContainers = new List<int>();
-
-        public static void AddToGoto(int agentId, int containerId)
+        public void AddToGoto(int agentId, int containerId)
         {
             lock (gotoAgents)
             {
@@ -72,7 +88,7 @@ namespace CoreAMS.MessageTransportSystem
             }
         }
 
-        public static void SendGoto()
+        public void SendGoto()
         {
             lock (gotoAgents)
             {
@@ -83,19 +99,11 @@ namespace CoreAMS.MessageTransportSystem
                 //if (gotoAgents.Count == 0)
                 //    return;
 
-                var msg = new BrokeredMessage(new GoToContainerMessage(guid, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray(), infectedAgents.ToArray()));
-
-                msg.ContentType = typeof(GoToContainerMessage).Name;
-                client.Send(msg);
+                this.transportSystem.SendMessage(new GoToContainerMessage(this.transportSystem.Id, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray(), infectedAgents.ToArray()));
                 gotoAgents.Clear();
                 gotoContainers.Clear();
                 infectedAgents.Clear();
             }
-        }
-
-        public static void Dispose()
-        {
-            client.Close();
         }
         
     }
