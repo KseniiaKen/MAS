@@ -28,25 +28,25 @@ namespace VisualSimulation
         private static void fillContainers() 
         {
             Home home = new Home(0, 50, 12);
-            Containers.Instance.Add(home); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
+            Containers.Instance.Add(0, home); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
 
             Hospital hospital = new Hospital(1, 237, 19);
-            Containers.Instance.Add(hospital);
+            Containers.Instance.Add(1, hospital);
 
             Mall mall = new Mall(2, 578, 90);
-            Containers.Instance.Add(mall);
+            Containers.Instance.Add(2, mall);
 
             Office office = new Office(3, 236, 20);
-            Containers.Instance.Add(office);
+            Containers.Instance.Add(3, office);
 
             University university = new University(4, 300, 25);
-            Containers.Instance.Add(university);
+            Containers.Instance.Add(4, university);
 
             School school = new School(5, 250, 30);
-            Containers.Instance.Add(school);
+            Containers.Instance.Add(5, school);
 
             Nursery nursery = new Nursery(6, 60, 23);
-            Containers.Instance.Add(nursery);
+            Containers.Instance.Add(6, nursery);
 
         }
 

@@ -67,7 +67,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < homeCount; i++)
             {
                 homes.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Home, currentId, 50, 12));
-                Containers.Instance.Add(new Home(currentId, 50, 12));
+                Containers.Instance.Add(currentId, new Home(currentId, 50, 12));
                 currentId++;
             }
             // Everyone at home at the beginning
@@ -87,7 +87,7 @@ namespace GlobalDescriptorWorker
                 int homeNum = i % homeCount;
                 Person a = p[i];
                 homes[homeNum].agentData.Add(new AddAgentMessage(MessageTransportSystem.Instance.Id, a.GetType().Name, a.GetId(), a.GetHealthState(), 1));
-                this.agentLocations[a.GetId()] = Containers.Instance.Find((c) => c.Id == homes[homeNum].containerId);
+                this.agentLocations[a.GetId()] = Containers.Instance[homes[homeNum].containerId];
             }
             messagesToSend.AddRange(homes);
 
@@ -96,7 +96,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < hospitalCount; i++)
             {
                 hospitals.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Hospital, currentId, 237, 19));
-                Containers.Instance.Add(new Hospital(currentId, 237, 19));
+                Containers.Instance.Add(currentId, new Hospital(currentId, 237, 19));
                 currentId++;
             }
             messagesToSend.AddRange(hospitals);
@@ -106,7 +106,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < mallCount; i++)
             {
                 malls.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Mall, currentId, 578, 90));
-                Containers.Instance.Add(new Mall(currentId, 578, 90));
+                Containers.Instance.Add(currentId, new Mall(currentId, 578, 90));
                 currentId++;
             }
             messagesToSend.AddRange(malls);
@@ -116,7 +116,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < officeCount; i++)
             {
                 offices.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Office, currentId, 236, 20));
-                Containers.Instance.Add(new Office(currentId, 236, 20));
+                Containers.Instance.Add(currentId, new Office(currentId, 236, 20));
                 currentId++;
             }
             messagesToSend.AddRange(offices);
@@ -126,7 +126,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < univercityCount; i++)
             {
                 univercities.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.University, currentId, 300, 25));
-                Containers.Instance.Add(new University(currentId, 300, 25));
+                Containers.Instance.Add(currentId, new University(currentId, 300, 25));
                 currentId++;
             }
             messagesToSend.AddRange(univercities);
@@ -136,7 +136,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < schoolCount; i++)
             {
                 schools.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.School, currentId, 237, 19));
-                Containers.Instance.Add(new School(currentId, 237, 19));
+                Containers.Instance.Add(currentId, new School(currentId, 237, 19));
                 currentId++;
             }
             messagesToSend.AddRange(schools);
@@ -146,7 +146,7 @@ namespace GlobalDescriptorWorker
             for (int i = 0; i < nurseryCount; i++)
             {
                 nurseries.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Nursery, currentId, 60, 23));
-                Containers.Instance.Add(new Nursery(currentId, 60, 23));
+                Containers.Instance.Add(currentId, new Nursery(currentId, 60, 23));
                 currentId++;
             }
             messagesToSend.AddRange(nurseries);
@@ -353,7 +353,7 @@ namespace GlobalDescriptorWorker
             //if (agentId == 2)
             //    Trace.TraceInformation("Go: {0} to {1} ; Time: {2}", agentId, containerId, GlobalTime.realTime);
 
-            List<ContainersCore> containersWithType = Containers.Instance.Where((c) => c.ContainerType == containerType).ToList();
+            List<ContainersCore> containersWithType = Containers.Instance.Values.Where((c) => c.ContainerType == containerType).ToList();
             if (containersWithType.Count == 0)
             {
                 Trace.TraceWarning("Warning: Container with type {0} not found", containerType);

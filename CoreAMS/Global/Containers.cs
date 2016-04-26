@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CoreAMS.Global
 {
-    public class Containers :  List<ContainersCore>     //ICollection<ContainersCore> // ICollection — общий интерфейс для всех коллекций
+    public class Containers :  Dictionary<int, ContainersCore>     //ICollection<ContainersCore> // ICollection — общий интерфейс для всех коллекций
     {
         //TODO: сделать этот класс Синглтоном (будет одним глобалным объектом)
         private Containers() {   //сделали конструктор private, чтобы нельзя было создавать экземпляры класса.

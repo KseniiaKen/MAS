@@ -87,7 +87,7 @@ namespace CloudSimulationWorker
 
             if (container != null)
             {
-                Containers.Instance.Add(container);
+                Containers.Instance.Add(container.Id, container);
 
                 foreach (AddAgentMessage aam in acm.agentData)
                 {
@@ -180,7 +180,7 @@ namespace CloudSimulationWorker
                     int containerId = aaMessage.containerId;
                     if (containerId > 0)
                     {
-                        var foundContainer = Containers.Instance.Find((c) => c.Id == containerId);
+                        var foundContainer = Containers.Instance[containerId];
 
                         AbstractPerson ap = (AbstractPerson)a;
                         ap.currentContainerId = containerId;

@@ -120,7 +120,6 @@ namespace CoreAMS.AgentManagementSystem
             if (agentInCurrentContainer is AbstractPerson)
             {
                 AbstractPerson abstractPerson = (AbstractPerson)agentInCurrentContainer;
-                ContainersCore currentContainer = Containers.Instance.Find(c => c.Id == abstractPerson.currentContainerId); //текущий контейнер известен.
 
                 lock (agentDictionary)
                 {
