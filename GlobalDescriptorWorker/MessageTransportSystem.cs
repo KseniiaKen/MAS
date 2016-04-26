@@ -112,6 +112,9 @@ namespace GlobalDescriptorWorker
                         case "GoToContainerMessage":
                             message = receivedMessage.GetBody<GoToContainerMessage>();
                             break;
+                        case "AddContainerMessage":
+                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
+                            break;
                     }
                 }
                 catch (Exception e)
@@ -153,6 +156,9 @@ namespace GlobalDescriptorWorker
                             if (this.OnTickEndMessage != null)
                                 this.OnTickEndMessage(message);
                             break;
+                        case MessageType.AddContainer:
+                            Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
+                            break;
                     }
                 }
             });
@@ -189,6 +195,28 @@ namespace GlobalDescriptorWorker
                 msg.ContentType = message.GetType().Name;
                 c.Send(msg);
             }
+        }
+
+        public Dictionary<Message, Guid> SendSpread(List<Message> messages)
+        {
+            var result = new Dictionary<Message, Guid>();
+
+            for (int i = 0; i< messages.Count; i++)
+            {
+                int workerIdx = i % this.workers.Count;
+                var kvp = workers.ElementAt(workerIdx);
+                Guid workerId = kvp.Key;
+                QueueClient worker = kvp.Value;
+                Message message = messages[i];
+
+                var msg = new BrokeredMessage(message);
+                msg.ContentType = message.GetType().Name;
+                worker.Send(msg);
+
+                result[message] = workerId;
+            }
+
+            return result;
         }
 
     }

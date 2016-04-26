@@ -10,8 +10,6 @@ namespace CoreAMS.AgentManagementSystem
     // здесь хранятся все агенты и их состояния.
     public static class GlobalAgentDescriptorTable
     {
-        public static void deleteAllAgents() { agentDictionary.Clear(); }//метод, удаляющий всех агентов
-
         private static Dictionary<int, IAgent> agentDictionary = new Dictionary<int, IAgent>(); // хранятся список агентов и их ID
         private static int key = 0;
         private static object threadLock = new object();
@@ -36,15 +34,42 @@ namespace CoreAMS.AgentManagementSystem
         // Добавляем агентов в общий каталог
         public static void AddAgents(List<IAgent> agents)
         {
-            foreach (var agent in agents)
+            lock (agentDictionary)
             {
-                agentDictionary.Add(agent.GetId(), agent);
+                foreach (var agent in agents)
+                {
+                    agentDictionary.Add(agent.GetId(), agent);
+                }
             }
         }
 
         public static void AddOneAgent(IAgent agent)//добавляем одного агента в общий каталог
         {
-            agentDictionary.Add(agent.GetId(), agent);
+            lock (agentDictionary)
+            {
+                agentDictionary.Add(agent.GetId(), agent);
+            }
+        }
+
+        //метод, удаляющий всех агентов
+        public static void DeleteAllAgents()
+        {
+            lock (agentDictionary)
+            {
+                agentDictionary.Clear();
+            }
+        }
+
+        public static void DeleteOneAgent(IAgent agent)
+        {
+            lock (agentDictionary)
+            {
+                var found = agentDictionary.Where(kvp => kvp.Value == agent).ToList();
+                foreach (var kvp in found)
+                {
+                    agentDictionary.Remove(kvp.Key);
+                }
+            }
         }
 
         public static IAgent GetAgentById(int agentId)

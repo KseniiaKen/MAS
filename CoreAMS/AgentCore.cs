@@ -25,7 +25,8 @@ namespace CoreAMS.AgentCore
         protected Dictionary<string, Object> variableDictionary = new Dictionary<string,object>();
         protected int Id = -1;
 
-        public int currentContainer = -1; // контейнер, в котором сейчас находится агент
+        public int currentContainerId = -1; // контейнер, в котором сейчас находится агент
+        public Enums.ContainerType currentContainerType = Enums.ContainerType.Home; // контейнер, в котором сейчас находится агент
 
         public abstract int GetId();
 

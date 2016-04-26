@@ -23,6 +23,7 @@ namespace CloudSimulationWorker
         public event MessageEventHandler OnInfectMessage;
         public event MessageEventHandler OnTickMessage;
         public event MessageEventHandler OnClearMessage;
+        public event MessageEventHandler OnAddContainerMessage;
 
         private static MessageTransportSystem instance = new MessageTransportSystem();
 
@@ -109,6 +110,9 @@ namespace CloudSimulationWorker
                         case "GoToContainerMessage":
                             Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
                             break;
+                        case "AddContainerMessage":
+                            message = receivedMessage.GetBody<AddContainerMessage>();
+                            break;
                     }
                 }
                 catch (Exception e)
@@ -151,6 +155,11 @@ namespace CloudSimulationWorker
                         case MessageType.TickEnd:
                             Trace.TraceWarning("Warning: Received unexpected message. Type: {0}; Sender: {1}", message.type, message.senderId);
                             break;
+                        case MessageType.AddContainer:
+                            if (this.OnAddContainerMessage != null)
+                                this.OnAddContainerMessage(message);
+                            break;
+
                     }
                 }
             });

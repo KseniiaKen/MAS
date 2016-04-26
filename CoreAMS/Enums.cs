@@ -34,15 +34,16 @@ namespace CoreAMS
             Infected = 0
         }
 
+        [Serializable]
         public enum ContainerType 
         {
-            Home,
-            Hospital,
-            Mall,
-            Office,
-            University,
-            School,
-            Nursery
+            Home = 0,
+            Hospital = 1,
+            Mall = 2,
+            Office = 3,
+            University = 4,
+            School = 5,
+            Nursery = 6
 
         }
 

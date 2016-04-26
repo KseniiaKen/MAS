@@ -57,6 +57,7 @@
     <Compile Include="GlobalTime.cs" />
     <Compile Include="Global\Containers.cs" />
     <Compile Include="Messages\AddAgentMessage.cs" />
+    <Compile Include="Messages\AddContainerMessage.cs" />
     <Compile Include="Messages\GoToContainerMessage.cs" />
     <Compile Include="Messages\Message.cs" />
     <Compile Include="Messages\MessageType.cs" />

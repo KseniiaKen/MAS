@@ -34,31 +34,6 @@ namespace CloudSimulationWorker
             MessageTransportSystem.Instance.SendMessage(new Message(MessageTransportSystem.Instance.Id, MessageType.Registration));
         }
 
-        private static void fillContainers()
-        {
-            Home home = new Home(0, 50, 12);
-            Containers.Instance.Add(home); //Containers.Instance Ч глобальна€ коллекци€, содержаща€ контейнеры.
-
-            Hospital hospital = new Hospital(1, 237, 19);
-            Containers.Instance.Add(hospital);
-
-            Mall mall = new Mall(2, 578, 90);
-            Containers.Instance.Add(mall);
-
-            Office office = new Office(3, 236, 20);
-            Containers.Instance.Add(office);
-
-            University university = new University(4, 300, 25);
-            Containers.Instance.Add(university);
-
-            School school = new School(5, 250, 30);
-            Containers.Instance.Add(school);
-
-            Nursery nursery = new Nursery(6, 60, 23);
-            Containers.Instance.Add(nursery);
-
-        }
-
         public override void Run()
         {
             if (cancellationTokenSource.IsCancellationRequested || isFinished)
@@ -69,18 +44,61 @@ namespace CloudSimulationWorker
             MessageTransportSystem.Instance.OnInfectMessage += onInfectMessage;
             MessageTransportSystem.Instance.OnTickMessage += onTickMessage;
             MessageTransportSystem.Instance.OnClearMessage += onClearMessage;
+            MessageTransportSystem.Instance.OnAddContainerMessage += onAddContainerMessage;
 
             MessageTransportSystem.Instance.StartListening();
 
             this.register();
-            fillContainers();
 
             this.stopEvent.WaitOne();
         }
 
+        private void onAddContainerMessage(Message message)
+        {
+            AddContainerMessage acm = (AddContainerMessage)message;
+
+            Trace.TraceInformation("Added containter. Type: {0}; Id: {1}.", acm.containerType, acm.containerId);
+
+            ContainersCore container = null;
+            switch(acm.containerType)
+            {
+                case Enums.ContainerType.Home:
+                    container = new Home(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.Hospital:
+                    container = new Hospital(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.Mall:
+                    container = new Mall(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.Nursery:
+                    container = new Nursery(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.Office:
+                    container = new Office(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.School:
+                    container = new School(acm.containerId, acm.area, acm.dencity);
+                    break;
+                case Enums.ContainerType.University:
+                    container = new University(acm.containerId, acm.area, acm.dencity);
+                    break;
+            }
+
+            if (container != null)
+            {
+                Containers.Instance.Add(container);
+
+                foreach (AddAgentMessage aam in acm.agentData)
+                {
+                    this.onAddAgentMessage(aam);
+                }
+            }
+        }
+
         private void onClearMessage(Message message)
         {
-            GlobalAgentDescriptorTable.deleteAllAgents();
+            GlobalAgentDescriptorTable.DeleteAllAgents();
             GlobalTime.Time = 0; ;
         }
 

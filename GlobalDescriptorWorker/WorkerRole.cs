@@ -37,38 +37,33 @@ namespace GlobalDescriptorWorker
         private List<Guid> workers = new List<Guid>();
         private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
         private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
-        private Dictionary<int, Guid> agents = new Dictionary<int, Guid>(); // в каком worker-е находится агент с id равным ключу
+        private Dictionary<int, Guid> containers2workers = new Dictionary<int, Guid>(); // в каком worker-е находится контейнер с id равным ключу
         private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
         private List<int[]> totalResult = new List<int[]>();
 
-        private static void fillContainers()
+        private void fillContainers()
         {
-            Home home = new Home(0, 50, 12);
-            Containers.Instance.Add(home); //Containers.Instance — глобальная коллекция, содержащая контейнеры.
+            int homeCount = 50;
+            int hospitalCount = 3;
+            int mallCount = 5;
+            int officeCount = 10;
+            int univercityCount = 1;
+            int schoolCount = 3;
+            int nurseryCount = 3;
 
-            Hospital hospital = new Hospital(1, 237, 19);
-            Containers.Instance.Add(hospital);
+            List<Message> messagesToSend = new List<Message>();
+            int currentId = 0;
 
-            Mall mall = new Mall(2, 578, 90);
-            Containers.Instance.Add(mall);
-
-            Office office = new Office(3, 236, 20);
-            Containers.Instance.Add(office);
-
-            University university = new University(4, 300, 25);
-            Containers.Instance.Add(university);
-
-            School school = new School(5, 250, 30);
-            Containers.Instance.Add(school);
-
-            Nursery nursery = new Nursery(6, 60, 23);
-            Containers.Instance.Add(nursery);
-
-        }
-
-        private void fillAgents()
-        {
-            List<IAgent> p = new List<IAgent>(); // создаем пустой список агентов
+            // Messages for home containers creation
+            List<AddContainerMessage> homes = new List<AddContainerMessage>();            
+            for (int i = 0; i < homeCount; i++)
+            {
+                homes.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Home, currentId, 50, 12));
+                Containers.Instance.Add(new Home(currentId, 50, 12));
+                currentId++;
+            }
+            // Everyone at home at the beginning
+            List<Person> p = new List<Person>();
             p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
             p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Susceptible, 750, "LocationProbabilities"));
             p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
@@ -79,20 +74,84 @@ namespace GlobalDescriptorWorker
             p.AddRange(Elder.ElderList(Enums.HealthState.Susceptible, 900, "LocationProbabilities"));
             p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
             p.AddRange(Youngster.YoungsterList(Enums.HealthState.Susceptible, 650, "LocationProbabilities"));
-
             for (int i = 0; i < p.Count; i++)
             {
-                Person agent = (Person)p[i];
-                Guid workerId = this.workers.ElementAt(i % this.workers.Count);
-                this.agents.Add(agent.GetId(), workerId);
-                this.agentLocations.Add(agent.GetId(), null);
-
-                MessageTransportSystem.Instance.SendMessage(new AddAgentMessage(MessageTransportSystem.Instance.Id, agent.GetType().Name, agent.GetId(), agent.GetHealthState(), 1), workerId);
+                int homeNum = i % homeCount;
+                Person a = p[i];
+                homes[homeNum].agentData.Add(new AddAgentMessage(MessageTransportSystem.Instance.Id, a.GetType().Name, a.GetId(), a.GetHealthState(), 1));
+                this.agentLocations[a.GetId()] = Containers.Instance.Find((c) => c.Id == homes[homeNum].containerId);
             }
+            messagesToSend.AddRange(homes);
 
-            //GlobalAgentDescriptorTable.AddAgents(p); // добавляем созданные агенты в класс, в котором хранятся все агенты
+            // Messages for hospital containers creation
+            List<AddContainerMessage> hospitals = new List<AddContainerMessage>();
+            for (int i = 0; i < hospitalCount; i++)
+            {
+                hospitals.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Hospital, currentId, 237, 19));
+                Containers.Instance.Add(new Hospital(currentId, 237, 19));
+                currentId++;
+            }
+            messagesToSend.AddRange(hospitals);
 
+            // Messages for mall containers creation
+            List<AddContainerMessage> malls = new List<AddContainerMessage>();
+            for (int i = 0; i < mallCount; i++)
+            {
+                malls.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Mall, currentId, 578, 90));
+                Containers.Instance.Add(new Mall(currentId, 578, 90));
+                currentId++;
+            }
+            messagesToSend.AddRange(malls);
 
+            // Messages for office containers creation
+            List<AddContainerMessage> offices = new List<AddContainerMessage>();
+            for (int i = 0; i < officeCount; i++)
+            {
+                offices.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Office, currentId, 236, 20));
+                Containers.Instance.Add(new Office(currentId, 236, 20));
+                currentId++;
+            }
+            messagesToSend.AddRange(offices);
+
+            // Messages for univercity containers creation
+            List<AddContainerMessage> univercities = new List<AddContainerMessage>();
+            for (int i = 0; i < univercityCount; i++)
+            {
+                univercities.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.University, currentId, 300, 25));
+                Containers.Instance.Add(new University(currentId, 300, 25));
+                currentId++;
+            }
+            messagesToSend.AddRange(univercities);
+
+            // Messages for school containers creation
+            List<AddContainerMessage> schools = new List<AddContainerMessage>();
+            for (int i = 0; i < schoolCount; i++)
+            {
+                schools.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.School, currentId, 237, 19));
+                Containers.Instance.Add(new School(currentId, 237, 19));
+                currentId++;
+            }
+            messagesToSend.AddRange(schools);
+
+            // Messages for nursery containers creation
+            List<AddContainerMessage> nurseries = new List<AddContainerMessage>();
+            for (int i = 0; i < nurseryCount; i++)
+            {
+                nurseries.Add(new AddContainerMessage(MessageTransportSystem.Instance.Id, Enums.ContainerType.Nursery, currentId, 60, 23));
+                Containers.Instance.Add(new Nursery(currentId, 60, 23));
+                currentId++;
+            }
+            messagesToSend.AddRange(nurseries);
+
+            // Now sending all messages equally spread to all CS workers and saving what container on what worker
+            this.containers2workers.Clear();
+            Dictionary<Message, Guid> res = MessageTransportSystem.Instance.SendSpread(messagesToSend);
+            foreach(var r in res)
+            {
+                AddContainerMessage message = (AddContainerMessage)r.Key;
+                Guid workerId = r.Value;
+                this.containers2workers[message.containerId] = workerId;
+            }
         }
 
         private void calculateResult()
@@ -171,8 +230,8 @@ namespace GlobalDescriptorWorker
         {
             this.iterationNum++;
 
-            fillContainers();
-            fillAgents();
+            this.fillContainers();
+            // fillAgents();
 
             MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Start));
 
@@ -205,7 +264,7 @@ namespace GlobalDescriptorWorker
             MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Clear));
 
             Containers.Instance.Clear();
-            this.agents.Clear();
+            this.containers2workers.Clear();
             this.agentLocations.Clear();
 
             for (int i = 0; i < this.results.Count; i++)
@@ -228,66 +287,68 @@ namespace GlobalDescriptorWorker
             this.start();
         }
 
-        private void infectOtherAgent(int sourceAgentId)
-        {
-            if (this.agents.Count < 2)
-            {
-                Trace.TraceInformation("Warning: too litle agents");
-                return;
-            }
-            // Random:
-            // int idx = random.Next(0, this.agents.Count - 1);
+        //private void infectOtherAgent(int sourceAgentId)
+        //{
+        //    if (this.agents.Count < 2)
+        //    {
+        //        Trace.TraceInformation("Warning: too litle agents");
+        //        return;
+        //    }
+        //    // Random:
+        //    // int idx = random.Next(0, this.agents.Count - 1);
 
-            ContainersCore currentContainer = this.agentLocations[sourceAgentId];
-            if (currentContainer == null)
-            {
-                Trace.TraceInformation("Warning: no current container for {0}", sourceAgentId);
-                return;
-            }
+        //    ContainersCore currentContainer = this.agentLocations[sourceAgentId];
+        //    if (currentContainer == null)
+        //    {
+        //        Trace.TraceInformation("Warning: no current container for {0}", sourceAgentId);
+        //        return;
+        //    }
 
-            if (currentContainer is Home)
-            {
-                // Trace.TraceInformation("Current container for {0} is Home", sourceAgentId);
-                return;
-            }
+        //    if (currentContainer is Home)
+        //    {
+        //        // Trace.TraceInformation("Current container for {0} is Home", sourceAgentId);
+        //        return;
+        //    }
 
-            if (currentContainer.AgentCount < 2)
-            {
-                Trace.TraceInformation("Warning: noone in container for {0}", sourceAgentId);
-                return;
-            }
+        //    if (currentContainer.AgentCount < 2)
+        //    {
+        //        Trace.TraceInformation("Warning: noone in container for {0}", sourceAgentId);
+        //        return;
+        //    }
 
-            int destAgentId = sourceAgentId;
-            while (destAgentId == sourceAgentId)
-            {
-                destAgentId = currentContainer.GetRandomAgent();
-            }
+        //    int destAgentId = sourceAgentId;
+        //    while (destAgentId == sourceAgentId)
+        //    {
+        //        destAgentId = currentContainer.GetRandomAgent();
+        //    }
 
-            Guid clientId = this.agents[destAgentId];
-            var msg0 = new Message(MessageTransportSystem.Instance.Id, MessageType.Infect);
-            msg0.data = destAgentId.ToString();
-            //Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
-            MessageTransportSystem.Instance.SendMessage(msg0, clientId);
-        }
+        //    Guid clientId = this.agents[destAgentId];
+        //    var msg0 = new Message(MessageTransportSystem.Instance.Id, MessageType.Infect);
+        //    msg0.data = destAgentId.ToString();
+        //    //Trace.TraceInformation("Infecting: {0} -> {1}", sourceAgentId, destAgentId);
+        //    MessageTransportSystem.Instance.SendMessage(msg0, clientId);
+        //}
 
-        private void gotoContainer(int agentId, int containerId)
+        private void gotoContainer(AddAgentMessage amsg, Enums.ContainerType containerType)
         {
             //if (agentId == 2)
             //    Trace.TraceInformation("Go: {0} to {1} ; Time: {2}", agentId, containerId, GlobalTime.realTime);
 
-            int idx = Containers.Instance.FindIndex((c) => c.Id == containerId);
-            if (idx < 0)
+            List<ContainersCore> containersWithType = Containers.Instance.Where((c) => c.ContainerType == containerType).ToList();
+            if (containersWithType.Count == 0)
             {
-                Trace.TraceWarning("Warning: Container with id {0} not found", containerId);
+                Trace.TraceWarning("Warning: Container with type {0} not found", containerType);
                 return;
             }
 
-            ContainersCore container = Containers.Instance[idx];
-            ContainersCore oldContainer = this.agentLocations[agentId];
-            container.AddPersonInContainer(agentId);
-            if (oldContainer != null)
-                oldContainer.DeletePersonFromContainer(agentId);
-            agentLocations[agentId] = container;
+            int idx = this.random.Next(0, containersWithType.Count - 1);
+            ContainersCore container = containersWithType[idx];
+            ContainersCore oldContainer = this.agentLocations[amsg.agentId];
+
+            Guid workerId = this.containers2workers[container.Id];
+            MessageTransportSystem.Instance.SendMessage(amsg, workerId);
+
+            agentLocations[amsg.agentId] = container;
         }
 
         public override void Run()
@@ -313,12 +374,12 @@ namespace GlobalDescriptorWorker
 
                 foreach (int agentId in gtMessage.infectionSourceAgentIds)
                 {
-                    this.infectOtherAgent(agentId);
+                    //this.infectOtherAgent(agentId);
                 }
 
-                for (int i = 0; i < gtMessage.agentIds.Length; i++)
+                for (int i = 0; i < gtMessage.agents.Length; i++)
                 {
-                    this.gotoContainer(gtMessage.agentIds[i], gtMessage.containerIds[i]);
+                    this.gotoContainer(gtMessage.agents[i], gtMessage.containerTypes[i]);
                 }
 
                 this.waiters[message.senderId].Set();
@@ -343,8 +404,8 @@ namespace GlobalDescriptorWorker
 
         private void onInfectMessage(Message message)
         {
-            if (isStarted)
-                this.infectOtherAgent(Int32.Parse(message.data));
+            //if (isStarted)
+            //    this.infectOtherAgent(Int32.Parse(message.data));
         }
 
         private void onTickEndMessage(Message message)
@@ -381,9 +442,6 @@ namespace GlobalDescriptorWorker
             this.runCompleteEvent.WaitOne();
 
             MessageTransportSystem.Instance.DeInit();
-
-            //var namespaceManager = NamespaceManager.CreateFromConnectionString(this.connectionString);
-            //namespaceManager.DeleteQueue(this.queueName);
 
             base.OnStop();
 

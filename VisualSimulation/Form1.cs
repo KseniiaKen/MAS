@@ -84,7 +84,7 @@ namespace VisualSimulation
                 resultsFile.WriteLine(lastStringInResultsFile);
                 resultsFile.Dispose();
 
-                GlobalAgentDescriptorTable.deleteAllAgents();
+                GlobalAgentDescriptorTable.DeleteAllAgents();
                 Containers.Instance.Clear();
                 GlobalTime.Time = 0;
             }

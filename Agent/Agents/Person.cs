@@ -1,4 +1,4 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +9,7 @@ using CoreAMS.MessageTransportSystem;
 using CoreAMS.AgentManagementSystem;
 using System.IO;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace Agent.Agents
 {
@@ -19,7 +20,7 @@ namespace Agent.Agents
         {
             public int startTime;
             public int endTime;
-            public ContainersCore container; // какой-то контейнер, для которого определяем вероятность.
+            public Enums.ContainerType containerType; // какой-то контейнер, для которого определяем вероятность.
         }
 
         public Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
@@ -73,7 +74,7 @@ namespace Agent.Agents
                     {
                         startTime = Int32.Parse(rowValues[0]),
                         endTime = Int32.Parse(rowValues[1]),
-                        container = CoreAMS.Global.Containers.Instance.ElementAt(Int32.Parse(rowValues[2]))
+                        containerType = (Enums.ContainerType)Int32.Parse(rowValues[2])
                     };
                     this.locationProbabilities.Add(key, (double)Decimal.Parse(rowValues[3], CultureInfo.InvariantCulture));
                 }
@@ -127,7 +128,7 @@ namespace Agent.Agents
         }
 
         // в каком контейнере должен быть агент в данный момент времени
-        private int containerToGo() {
+        private Enums.ContainerType containerToGo() {
             while (true)
             {
                 for (int i = 0; i < locationProbabilities.Count; i++)
@@ -135,7 +136,10 @@ namespace Agent.Agents
                     var keyAndValue = locationProbabilities.ElementAt(i);
                     if (keyAndValue.Key.startTime <= GlobalTime.realTime && keyAndValue.Key.endTime > GlobalTime.realTime)
                     {
-                        if (r.NextDouble() < keyAndValue.Value) { return keyAndValue.Key.container.Id; }
+                        if (r.NextDouble() < keyAndValue.Value)
+                        {
+                            return keyAndValue.Key.containerType;
+                        }
                     }
 
                 }
@@ -147,11 +151,12 @@ namespace Agent.Agents
             if (this.healthState == Enums.HealthState.Dead)
                 return;
 
-            int resOfContainerToGo = containerToGo();
-            if (currentContainer != resOfContainerToGo)
+            Enums.ContainerType resOfContainerToGo = containerToGo();
+            if (this.currentContainerType != resOfContainerToGo)
             {
-                currentContainer = resOfContainerToGo;
-                MessageTransfer.Instance.AddToGoto(this.GetId(), resOfContainerToGo);
+                // Trace.TraceInformation("Moved to {0}", resOfContainerToGo);
+                MessageTransfer.Instance.AddToGoto(this, resOfContainerToGo);
+                currentContainerType = resOfContainerToGo;
             }
         }
 

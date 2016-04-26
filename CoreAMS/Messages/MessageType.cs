@@ -17,6 +17,7 @@ namespace CoreAMS.Messages
         TickEnd      = 5,
         Results      = 6,
         GoTo         = 7,
-        Clear        = 8
+        Clear        = 8,
+        AddContainer = 9
     }
 }

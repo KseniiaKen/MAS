@@ -41,8 +41,8 @@ namespace CoreAMS.MessageTransportSystem
 
         private IMessageTransportSystem transportSystem;
         private List<int> infectedAgents = new List<int>();
-        private List<int> gotoAgents = new List<int>();
-        private List<int> gotoContainers = new List<int>();
+        private List<AbstractPerson> gotoAgents = new List<AbstractPerson>();
+        private List<Enums.ContainerType> gotoContainers = new List<Enums.ContainerType>();
 
         public static MessageTransfer Instance
         {
@@ -79,12 +79,12 @@ namespace CoreAMS.MessageTransportSystem
             this.transportSystem.SendMessage(new Message(this.transportSystem.Id, MessageType.TickEnd));
         }
 
-        public void AddToGoto(int agentId, int containerId)
+        public void AddToGoto(AbstractPerson agent, Enums.ContainerType containerType)
         {
             lock (gotoAgents)
             {
-                gotoAgents.Add(agentId);
-                gotoContainers.Add(containerId);
+                gotoAgents.Add(agent);
+                gotoContainers.Add(containerType);
             }
         }
 
@@ -99,7 +99,32 @@ namespace CoreAMS.MessageTransportSystem
                 //if (gotoAgents.Count == 0)
                 //    return;
 
-                this.transportSystem.SendMessage(new GoToContainerMessage(this.transportSystem.Id, MessageType.TickEnd, gotoAgents.ToArray(), gotoContainers.ToArray(), infectedAgents.ToArray()));
+                List<AddAgentMessage> ams = new List<AddAgentMessage>();
+                foreach(AbstractPerson a in this.gotoAgents)
+                {
+                    ams.Add(new AddAgentMessage(
+                        this.transportSystem.Id,
+                        a.GetType().Name,
+                        a.GetId(),
+                        a.GetHealthState(),
+                        1
+                        ));
+                }
+
+
+                GoToContainerMessage msg = new GoToContainerMessage(
+                    this.transportSystem.Id, 
+                    MessageType.TickEnd, 
+                    ams.ToArray(), 
+                    this.gotoContainers.ToArray(), 
+                    this.infectedAgents.ToArray());
+
+                this.transportSystem.SendMessage(msg);
+                foreach (AbstractPerson a in this.gotoAgents)
+                {
+                    GlobalAgentDescriptorTable.DeleteOneAgent(a);
+                }
+
                 gotoAgents.Clear();
                 gotoContainers.Clear();
                 infectedAgents.Clear();

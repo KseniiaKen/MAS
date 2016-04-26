@@ -33,23 +33,26 @@ namespace CoreAMS.AgentManagementSystem
 
                 // получаем список всех существующих агентов
                 var agents = GlobalAgentDescriptorTable.GetAgents();
-               /* foreach (ContainersCore c in Containers.Instance) {
-                    if (c.abstractPersonsInCurrentContainer.Count > 0)
-                    {
-                        Console.WriteLine("{0} ({1})", c.ContainerType, GlobalTime.realTime);
-                        foreach (AbstractPerson p in c.abstractPersonsInCurrentContainer)
-                        {
-                            Console.Write(p.GetId());
-                            Console.Write(" ");
-                        }
-                        Console.WriteLine();
-                    }
-                }*/
+                /* foreach (ContainersCore c in Containers.Instance) {
+                     if (c.abstractPersonsInCurrentContainer.Count > 0)
+                     {
+                         Console.WriteLine("{0} ({1})", c.ContainerType, GlobalTime.realTime);
+                         foreach (AbstractPerson p in c.abstractPersonsInCurrentContainer)
+                         {
+                             Console.Write(p.GetId());
+                             Console.Write(" ");
+                         }
+                         Console.WriteLine();
+                     }
+                 }*/                
 
                 // запускаем каждый агент (агенты меняют свои состояния)
                 for (int i = 0; i < agents.Count; ++i)
                 {
-                    agents[i].Move();
+                    if (GlobalTime.Time % 24 == 0)
+                    {
+                        agents[i].Move();
+                    }
                     agents[i].Run();
                 }
 
@@ -63,6 +66,7 @@ namespace CoreAMS.AgentManagementSystem
                     //Trace.TraceInformation("New day: {0}", GlobalTime.Day);
                     //Trace.TraceInformation("Susceptible: {0}\nRecovered: {3}\nInfectious: {4}\nFuneral: {1}\nDead: {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
                     //        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
+                    Trace.TraceInformation("Agents count: {0}", agents.Count);
                     Trace.TraceInformation("{5}: {0} {3} {4} {1} {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount, GlobalTime.Day);
 

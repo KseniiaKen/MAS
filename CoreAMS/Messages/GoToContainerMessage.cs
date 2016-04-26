@@ -9,14 +9,15 @@ namespace CoreAMS.Messages
     [Serializable]
     public class GoToContainerMessage : Message
     {
-        public int[] agentIds;
-        public int[] containerIds;
-        public int[] infectionSourceAgentIds;
+        public AddAgentMessage[] agents;              // | <- this agents are going 
+        public Enums.ContainerType[] containerTypes;  // | <-   to this containers 
 
-        public GoToContainerMessage(Guid senderId, MessageType type, int[] agentIds, int[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
+        public int[] infectionSourceAgentIds;         // Agents trying to infect someone
+
+        public GoToContainerMessage(Guid senderId, MessageType type, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
         {
-            this.agentIds = agentIds;
-            this.containerIds = containerIds;
+            this.agents = agents;
+            this.containerTypes = containerIds;
             this.infectionSourceAgentIds = infectionSourceAgentIds;
         }
     }
