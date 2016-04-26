@@ -76,16 +76,32 @@ namespace CoreAMS.AgentManagementSystem
 
         public static IAgent GetAgentById(int agentId)
         {
-            return agentDictionary[agentId];
+            lock (agentDictionary)
+            {
+                return agentDictionary[agentId];
+            }
         }
 
         // Возвращаем список всех агентов
         public static List<IAgent> GetAgents()
         {
-            return agentDictionary.Values.ToList();
+            lock (agentDictionary)
+            {
+                return agentDictionary.Values.ToList();
+            }
         }
 
-        public static int Count { get { return agentDictionary.Count; } }
+        public static int Count
+        {
+            get
+            {
+                lock (agentDictionary)
+                {
+                    return agentDictionary.Count;
+                }
+            }
+        }
+
 
         // Получаем случайного агента для заражения
         //public static IAgent GetRandomAgentExceptSenderAgentId(int agentId)
@@ -113,18 +129,14 @@ namespace CoreAMS.AgentManagementSystem
                     agentDictionary.Values
                     .Where(a => a is AbstractPerson)
                     .Select(a => (AbstractPerson)a)
-                    .Where(a => a.currentContainerId == abstractPerson.currentContainerId)
+                    .Where(a => a.currentContainerId == abstractPerson.currentContainerId && a != abstractPerson)
                     .ToList();
 
-                    //TODO: Если кроме текущего агента в списке кто-то есть, то берём случайного из них и его и возвращаем.
+                    // Если кроме текущего агента в списке кто-то есть, то берём случайного из них и его и возвращаем.
                     // Если никого нет, возвращаем null.
-                    if (abstractPersonsInCurrentContainer.Count > 1)
+                    if (abstractPersonsInCurrentContainer.Count > 0)
                     {
-                        AbstractPerson personToInfect = abstractPerson;
-                        while (personToInfect == abstractPerson)
-                        {
-                            personToInfect = abstractPersonsInCurrentContainer[random.Next(0, abstractPersonsInCurrentContainer.Count - 1)];
-                        }
+                        AbstractPerson personToInfect = abstractPersonsInCurrentContainer[random.Next(0, abstractPersonsInCurrentContainer.Count - 1)];
 
                         return personToInfect;
                     }
