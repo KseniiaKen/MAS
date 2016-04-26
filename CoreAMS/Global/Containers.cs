@@ -9,15 +9,13 @@ namespace CoreAMS.Global
 {
     public class Containers :  Dictionary<int, ContainersCore>     //ICollection<ContainersCore> // ICollection — общий интерфейс для всех коллекций
     {
-        //TODO: сделать этот класс Синглтоном (будет одним глобалным объектом)
-        private Containers() {   //сделали конструктор private, чтобы нельзя было создавать экземпляры класса.
-
+        private Containers() {
         }
 
         private static Containers instance = new Containers();
 
         public static Containers Instance {
             get { return instance; }
-        } //TODO: заполнить коллекцию, где заполняются агенты - в Form1. Посмотреть, какие методы есть у List<ContainersCore>
+        }
     }
 }

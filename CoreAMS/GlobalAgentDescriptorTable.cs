@@ -40,7 +40,10 @@ namespace CoreAMS.AgentManagementSystem
             {
                 foreach (var agent in agents)
                 {
-                    agentDictionary.Add(agent.GetId(), agent);
+                    if (!agentDictionary.ContainsKey(agent.GetId()))
+                    {
+                        agentDictionary.Add(agent.GetId(), agent);
+                    }
                 }
             }
         }
@@ -78,7 +81,7 @@ namespace CoreAMS.AgentManagementSystem
         {
             lock (agentDictionary)
             {
-                return agentDictionary[agentId];
+                return (agentDictionary.ContainsKey(agentId)) ? agentDictionary[agentId] : null;
             }
         }
 
@@ -149,10 +152,39 @@ namespace CoreAMS.AgentManagementSystem
             {
                 return null;
             }
-            
+        }
+
+        // Returns agents present in container 
+        public static IEnumerable<AbstractPerson> PersonsInContainer(int containerId)
+        {
+            return
+                agentDictionary.Values
+                .Select(a => (AbstractPerson)a)
+                .Where(p => p.currentContainerId == containerId);
+        }
+
+        // Finds contained to be moved to another worker
+        public static ContainersCore FindContainerToMove()
+        {
+            var countByContainer = agentDictionary.Values
+                .Where(a => a is AbstractPerson)
+                .Select(a => (AbstractPerson)a)
+                .GroupBy(p => p.currentContainerId)
+                .Where(g => g.Key != -1)
+                .Select(g => new KeyValuePair<int, int>(g.Key, g.Count()))
+                .OrderBy(kvp => kvp.Value);
+
+            if (countByContainer.Count() > 2)
+            {
+                int idx = countByContainer.Count() / 2;
+
+                int containerId = countByContainer.ElementAt(idx).Key;
+                return Containers.Instance[containerId];
+            }
+            else
+            {
+                return null;
+            }
         }
     }
-
-    // Там, где был вызов метода GetRandomAgentExceptSenderAgentId, заменить на этот метод и учесть, что может вернуться null,
-    // т.е. агент не найден.
 }

@@ -55,6 +55,12 @@ namespace CoreAMS.AgentManagementSystem
                 if (agents.Count - avgNumberOfAgents > 100)
                 {
                     Trace.TraceInformation("Too many agents: {0}. Average: {1}", agents.Count, avgNumberOfAgents);
+
+                    ContainersCore containerToMove = GlobalAgentDescriptorTable.FindContainerToMove();
+                    if (containerToMove != null)
+                    {
+                        MessageTransportSystem.MessageTransfer.Instance.MoveContainer(containerToMove);
+                    }
                 }
 
                 // запускаем каждый агент (агенты меняют свои состояния)

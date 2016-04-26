@@ -14,7 +14,9 @@ namespace CoreAMS.Messages
 
         public int[] infectionSourceAgentIds;         // Agents trying to infect someone
 
-        public GoToContainerMessage(Guid senderId, MessageType type, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
+        public AddContainerMessage containerToMove = null;
+
+        public GoToContainerMessage(Guid senderId, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
         {
             this.agents = agents;
             this.containerTypes = containerIds;

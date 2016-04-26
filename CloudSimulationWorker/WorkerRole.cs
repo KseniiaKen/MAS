@@ -87,7 +87,10 @@ namespace CloudSimulationWorker
 
             if (container != null)
             {
-                Containers.Instance.Add(container.Id, container);
+                if (!Containers.Instance.ContainsKey(container.Id))
+                {
+                    Containers.Instance.Add(container.Id, container);
+                }
 
                 foreach (AddAgentMessage aam in acm.agentData)
                 {

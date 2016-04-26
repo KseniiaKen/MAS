@@ -27,7 +27,7 @@ namespace GlobalDescriptorWorker
 
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
-        private const int numberOfIterations = 2;
+        private const int numberOfIterations = 80;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
@@ -407,8 +407,25 @@ namespace GlobalDescriptorWorker
                     }
                 }
 
+                if (gtMessage.containerToMove != null)
+                {
+                    moveContainer(gtMessage.containerToMove);
+                }
+
                 this.waiters[message.senderId].Set();
             }
+        }
+
+        private void moveContainer(AddContainerMessage message)
+        {
+            Trace.TraceInformation("Container requested to move: {0}", message.containerId);
+
+            int idx = random.Next(0, this.results.Count - 1);
+            Guid workerId = this.results.ElementAt(idx).Key;
+
+            MessageTransportSystem.Instance.SendMessage(message, workerId);
+
+            this.containers2workers[message.containerId] = workerId;
         }
 
         private void onResultsMessage(Message message)
