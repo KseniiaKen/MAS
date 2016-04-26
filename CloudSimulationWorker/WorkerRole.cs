@@ -104,6 +104,13 @@ namespace CloudSimulationWorker
 
         private void onTickMessage(Message message)
         {
+            TickMessage tmessage = (TickMessage)message;
+
+            foreach (AddAgentMessage aam in tmessage.agents)
+            {
+                this.onAddAgentMessage(aam);
+            }
+
             AgentManagementSystem.NextTimeEvent.Set();
         }
 
@@ -129,6 +136,7 @@ namespace CloudSimulationWorker
                     AgentManagementSystem.infectiousAgentsCount,
                     AgentManagementSystem.funeralAgentsCount,
                     AgentManagementSystem.deadAgentsCount,
+                    AgentManagementSystem.exposedAgentsCount,
                     GlobalTime.Time
                 );
                 MessageTransportSystem.Instance.SendMessage(msg);

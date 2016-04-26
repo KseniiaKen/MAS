@@ -113,6 +113,9 @@ namespace CloudSimulationWorker
                         case "AddContainerMessage":
                             message = receivedMessage.GetBody<AddContainerMessage>();
                             break;
+                        case "TickMessage":
+                            message = receivedMessage.GetBody<TickMessage>();
+                            break;
                     }
                 }
                 catch (Exception e)

@@ -27,7 +27,7 @@ namespace GlobalDescriptorWorker
 
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
-        private const int numberOfIterations = 80;
+        private const int numberOfIterations = 2;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
@@ -39,24 +39,25 @@ namespace GlobalDescriptorWorker
         private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
         private Dictionary<int, Guid> containers2workers = new Dictionary<int, Guid>(); // в каком worker-е находится контейнер с id равным ключу
         private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
+        private Dictionary<Guid, List<AddAgentMessage>> addAgentMessages = new Dictionary<Guid, List<AddAgentMessage>>();
         private List<int[]> totalResult = new List<int[]>();
 
         private void fillContainers()
         {
-            //int homeCount = 50;
-            //int hospitalCount = 3;
-            //int mallCount = 5;
-            //int officeCount = 10;
-            //int univercityCount = 1;
-            //int schoolCount = 3;
-            //int nurseryCount = 3;
-            int homeCount = 1;
-            int hospitalCount = 1;
-            int mallCount = 1;
-            int officeCount = 1;
+            int homeCount = 1000;
+            int hospitalCount = 3;
+            int mallCount = 5;
+            int officeCount = 10;
             int univercityCount = 1;
-            int schoolCount = 1;
-            int nurseryCount = 1;
+            int schoolCount = 3;
+            int nurseryCount = 3;
+            //int homeCount = 1;
+            //int hospitalCount = 1;
+            //int mallCount = 1;
+            //int officeCount = 1;
+            //int univercityCount = 1;
+            //int schoolCount = 1;
+            //int nurseryCount = 1;
 
             List<Message> messagesToSend = new List<Message>();
             int currentId = 0;
@@ -168,6 +169,7 @@ namespace GlobalDescriptorWorker
             int infectiousCount = 0;
             int funeralCount = 0;
             int deadCount = 0;
+            int exposedCount = 0;
             int time = 0;
 
             foreach(ResultsMessage res in this.results.Values)
@@ -177,6 +179,7 @@ namespace GlobalDescriptorWorker
                 infectiousCount += res.infectiousCount;
                 funeralCount += res.funeralCount;
                 deadCount += res.deadCount;
+                exposedCount += res.exposedCount;
                 time = (time >= res.time) ? time : res.time;
             }
 
@@ -189,7 +192,7 @@ namespace GlobalDescriptorWorker
                 time
             });
 
-            Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum);
+            Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum, exposedCount);
         }
 
         private void calculateTotalResult()
@@ -222,7 +225,16 @@ namespace GlobalDescriptorWorker
                         break;
                     }
 
-                    MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Tick));
+                    // MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Tick));
+                    lock (this.addAgentMessages)
+                    {
+                        foreach (var kvp in this.addAgentMessages)
+                        {
+
+                            MessageTransportSystem.Instance.SendMessage(new TickMessage(MessageTransportSystem.Instance.Id, kvp.Value.ToArray()), kvp.Key);
+                            kvp.Value.Clear();
+                        }
+                    }
                 }
             });
             tickThread.Start();
@@ -355,7 +367,8 @@ namespace GlobalDescriptorWorker
             amsg.containerId = container.Id;
 
             Guid workerId = this.containers2workers[container.Id];
-            MessageTransportSystem.Instance.SendMessage(amsg, workerId);
+            // MessageTransportSystem.Instance.SendMessage(amsg, workerId);
+            this.addAgentMessages[workerId].Add(amsg);
 
             agentLocations[amsg.agentId] = container;
         }
@@ -386,9 +399,12 @@ namespace GlobalDescriptorWorker
                     //this.infectOtherAgent(agentId);
                 }
 
-                for (int i = 0; i < gtMessage.agents.Length; i++)
+                lock (this.addAgentMessages)
                 {
-                    this.gotoContainer(gtMessage.agents[i], gtMessage.containerTypes[i]);
+                    for (int i = 0; i < gtMessage.agents.Length; i++)
+                    {
+                        this.gotoContainer(gtMessage.agents[i], gtMessage.containerTypes[i]);
+                    }
                 }
 
                 this.waiters[message.senderId].Set();
@@ -428,6 +444,7 @@ namespace GlobalDescriptorWorker
             this.workers.Add(message.senderId);
             this.waiters.Add(message.senderId, new AutoResetEvent(false));
             this.results.Add(message.senderId, null);
+            this.addAgentMessages.Add(message.senderId, new List<AddAgentMessage>());
         }
 
         public override bool OnStart()

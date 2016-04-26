@@ -113,6 +113,7 @@ namespace GlobalDescriptorWorker
                             message = receivedMessage.GetBody<GoToContainerMessage>();
                             break;
                         case "AddContainerMessage":
+                        case "TickMessage":
                             Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
                             break;
                     }

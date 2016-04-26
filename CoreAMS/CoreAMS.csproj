@@ -62,6 +62,7 @@
     <Compile Include="Messages\Message.cs" />
     <Compile Include="Messages\MessageType.cs" />
     <Compile Include="Messages\ResultsMessage.cs" />
+    <Compile Include="Messages\TickMessage.cs" />
     <Compile Include="MessageTransportSystem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
