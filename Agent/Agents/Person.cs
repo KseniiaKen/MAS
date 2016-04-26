@@ -134,21 +134,23 @@ namespace Agent.Agents
 
         // в каком контейнере должен быть агент в данный момент времени
         private Enums.ContainerType containerToGo() {
-            while (true)
+            var matchingRules = locationProbabilities.Where(p => p.Key.startTime <= GlobalTime.realTime && p.Key.endTime > GlobalTime.realTime);
+            double probabilitiesSum = matchingRules.Select(p => p.Value).Sum();
+            double scale = 1.0d / probabilitiesSum;
+            double picked = r.NextDouble();
+            foreach(var kvp in matchingRules)
             {
-                for (int i = 0; i < locationProbabilities.Count; i++)
+                if (picked < kvp.Value * scale)
                 {
-                    var keyAndValue = locationProbabilities.ElementAt(i);
-                    if (keyAndValue.Key.startTime <= GlobalTime.realTime && keyAndValue.Key.endTime > GlobalTime.realTime)
-                    {
-                        if (r.NextDouble() < keyAndValue.Value)
-                        {
-                            return keyAndValue.Key.containerType;
-                        }
-                    }
-
+                    return kvp.Key.containerType;
+                }
+                else
+                {
+                    picked -= kvp.Value * scale;
                 }
             }
+
+            throw new InvalidDataException("Something wrong wit probablities");
         }
 
         public override void Move()
