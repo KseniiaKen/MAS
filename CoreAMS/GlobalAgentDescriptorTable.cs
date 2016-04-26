@@ -176,9 +176,11 @@ namespace CoreAMS.AgentManagementSystem
 
             if (countByContainer.Count() > 2)
             {
-                int idx = countByContainer.Count() / 2;
+                //int idx = countByContainer.Count() / 2;
+                //int containerId = countByContainer.ElementAt(idx).Key;
 
-                int containerId = countByContainer.ElementAt(idx).Key;
+                int containerId = countByContainer.First().Key;
+
                 return Containers.Instance[containerId];
             }
             else

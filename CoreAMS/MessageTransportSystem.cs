@@ -117,7 +117,9 @@ namespace CoreAMS.MessageTransportSystem
                     this.transportSystem.Id, 
                     ams.ToArray(), 
                     this.gotoContainers.ToArray(), 
-                    this.infectedAgents.ToArray());
+                    this.infectedAgents.ToArray(),
+                    GlobalAgentDescriptorTable.Count
+                    );
 
                 if (this.moveContainerMessage != null)
                 {

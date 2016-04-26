@@ -16,11 +16,14 @@ namespace CoreAMS.Messages
 
         public AddContainerMessage containerToMove = null;
 
-        public GoToContainerMessage(Guid senderId, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds): base(senderId, MessageType.GoTo)
+        public int agentCount = 0;
+
+        public GoToContainerMessage(Guid senderId, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds, int agentCount): base(senderId, MessageType.GoTo)
         {
             this.agents = agents;
             this.containerTypes = containerIds;
             this.infectionSourceAgentIds = infectionSourceAgentIds;
+            this.agentCount = agentCount;
         }
     }
 }

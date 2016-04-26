@@ -183,11 +183,19 @@ namespace CloudSimulationWorker
                     int containerId = aaMessage.containerId;
                     if (containerId > 0)
                     {
-                        var foundContainer = Containers.Instance[containerId];
+                        if (Containers.Instance.ContainsKey(containerId))
+                        {
+                            var foundContainer = Containers.Instance[containerId];
 
-                        AbstractPerson ap = (AbstractPerson)a;
-                        ap.currentContainerId = containerId;
-                        ap.currentContainerType = foundContainer.ContainerType;
+                            AbstractPerson ap = (AbstractPerson)a;
+                            ap.currentContainerId = containerId;
+                            ap.currentContainerType = foundContainer.ContainerType;
+                        }
+                        else
+                        {
+                            Trace.TraceWarning("Agent was added to moved to another node container. Moving him again");
+                            CoreAMS.MessageTransportSystem.MessageTransfer.Instance.AddToGoto((AbstractPerson)a, Enums.ContainerType.Home);
+                        }
                     }
                 }
                 else

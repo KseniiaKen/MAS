@@ -40,6 +40,7 @@ namespace GlobalDescriptorWorker
         private Dictionary<int, Guid> containers2workers = new Dictionary<int, Guid>(); // в каком worker-е находится контейнер с id равным ключу
         private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
         private Dictionary<Guid, List<AddAgentMessage>> addAgentMessages = new Dictionary<Guid, List<AddAgentMessage>>();
+        private Dictionary<Guid, int> agentCounters = new Dictionary<Guid, int>();
         private List<int[]> totalResult = new List<int[]>();
 
         private void fillContainers()
@@ -412,6 +413,8 @@ namespace GlobalDescriptorWorker
                     moveContainer(gtMessage.containerToMove);
                 }
 
+                this.agentCounters[message.senderId] = gtMessage.agentCount;
+
                 this.waiters[message.senderId].Set();
             }
         }
@@ -420,8 +423,15 @@ namespace GlobalDescriptorWorker
         {
             Trace.TraceInformation("Container requested to move: {0}", message.containerId);
 
-            int idx = random.Next(0, this.results.Count - 1);
-            Guid workerId = this.results.ElementAt(idx).Key;
+            // int idx = random.Next(0, this.results.Count - 1);
+            // Guid workerId = this.results.ElementAt(idx).Key;
+
+            Guid workerId =
+                this.agentCounters
+                .OrderBy(kvp => kvp.Value)
+                .First().Key;
+
+            Trace.TraceInformation("Selected worker for container: {0}. Agent count: {1}", workerId, this.agentCounters[workerId]);
 
             MessageTransportSystem.Instance.SendMessage(message, workerId);
 
@@ -462,6 +472,7 @@ namespace GlobalDescriptorWorker
             this.waiters.Add(message.senderId, new AutoResetEvent(false));
             this.results.Add(message.senderId, null);
             this.addAgentMessages.Add(message.senderId, new List<AddAgentMessage>());
+            this.agentCounters.Add(message.senderId, 0);
         }
 
         public override bool OnStart()
