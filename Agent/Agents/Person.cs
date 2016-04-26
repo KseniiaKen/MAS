@@ -113,7 +113,12 @@ namespace Agent.Agents
             // выбираем случайного агента и отправляем ему сообщение, что он инфицирован
             if (r.Next(0, 99) <= 100 * INFECTION_PROBABILITY)
             {
-                MessageTransfer.Instance.AddInfect(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
+                // MessageTransfer.Instance.AddInfect(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
+                AbstractPerson personToInfect = GlobalAgentDescriptorTable.SameLocationPerson(this.Id);
+                if (personToInfect != null)
+                {
+                    personToInfect.EventMessage(new AgentMessage(Enums.MessageType.Infected.ToString(), personToInfect.GetId(), this.Id));
+                }
             }
         }
 

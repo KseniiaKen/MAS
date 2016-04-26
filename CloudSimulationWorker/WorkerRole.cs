@@ -39,7 +39,7 @@ namespace CloudSimulationWorker
             if (cancellationTokenSource.IsCancellationRequested || isFinished)
                 return;
 
-            MessageTransportSystem.Instance.OnAddAgentMessage += onAddAgentMessage;
+            MessageTransportSystem.Instance.OnAddAgentMessage += (msg) => this.onAddAgentMessage(msg);
             MessageTransportSystem.Instance.OnStartMessage += onStartMessage;
             MessageTransportSystem.Instance.OnInfectMessage += onInfectMessage;
             MessageTransportSystem.Instance.OnTickMessage += onTickMessage;
@@ -91,7 +91,7 @@ namespace CloudSimulationWorker
 
                 foreach (AddAgentMessage aam in acm.agentData)
                 {
-                    this.onAddAgentMessage(aam);
+                    this.onAddAgentMessage(aam, container);
                 }
             }
         }
@@ -137,7 +137,7 @@ namespace CloudSimulationWorker
             });
         }
 
-        private void onAddAgentMessage(Message message)
+        private void onAddAgentMessage(Message message, ContainersCore container = null)
         {
             AddAgentMessage aaMessage = (AddAgentMessage)message;
             List<IAgent> ags = new List<IAgent>();
@@ -159,6 +159,27 @@ namespace CloudSimulationWorker
                 case "Youngster":
                     ags.AddRange(Youngster.YoungsterList(aaMessage.state, aaMessage.count, "LocationProbabilities"));
                     break;
+            }
+            foreach(IAgent a in ags)
+            {
+                if (container == null)
+                {
+                    int containerId = aaMessage.containerId;
+                    if (containerId > 0)
+                    {
+                        var foundContainer = Containers.Instance.Find((c) => c.Id == containerId);
+
+                        AbstractPerson ap = (AbstractPerson)a;
+                        ap.currentContainerId = containerId;
+                        ap.currentContainerType = foundContainer.ContainerType;
+                    }
+                }
+                else
+                {
+                    AbstractPerson ap = (AbstractPerson)a;
+                    ap.currentContainerId = container.Id;
+                    ap.currentContainerType = container.ContainerType;
+                }
             }
             GlobalAgentDescriptorTable.AddAgents(ags);
             //foreach (var ag in ags) {

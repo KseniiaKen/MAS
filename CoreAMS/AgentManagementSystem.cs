@@ -66,7 +66,12 @@ namespace CoreAMS.AgentManagementSystem
                     //Trace.TraceInformation("New day: {0}", GlobalTime.Day);
                     //Trace.TraceInformation("Susceptible: {0}\nRecovered: {3}\nInfectious: {4}\nFuneral: {1}\nDead: {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
                     //        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount);
-                    Trace.TraceInformation("Agents count: {0}", agents.Count);
+                    //Trace.TraceInformation("Agents count: {0}", agents.Count);
+                    //foreach(var g in GlobalAgentDescriptorTable.GetAgents().Select(a => (AbstractPerson)a).GroupBy(p => p.currentContainerId))
+                    //{
+                    //    var fst = g.First();
+                    //    Trace.TraceInformation("{0} ({1}) : {2}", fst.currentContainerId, fst.currentContainerType, g.Count());
+                    //}
                     Trace.TraceInformation("{5}: {0} {3} {4} {1} {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount, GlobalTime.Day);
 
@@ -75,7 +80,8 @@ namespace CoreAMS.AgentManagementSystem
                 //MessageTransportSystem.MessageTransfer.SendTickEnd();
                 MessageTransportSystem.MessageTransfer.Instance.SendGoto();
 
-                if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
+                // if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
+                if (GlobalTime.Day >= 80)
                 {
                     break;
                 }

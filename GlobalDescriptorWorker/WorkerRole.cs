@@ -43,13 +43,20 @@ namespace GlobalDescriptorWorker
 
         private void fillContainers()
         {
-            int homeCount = 50;
-            int hospitalCount = 3;
-            int mallCount = 5;
-            int officeCount = 10;
+            //int homeCount = 50;
+            //int hospitalCount = 3;
+            //int mallCount = 5;
+            //int officeCount = 10;
+            //int univercityCount = 1;
+            //int schoolCount = 3;
+            //int nurseryCount = 3;
+            int homeCount = 1;
+            int hospitalCount = 1;
+            int mallCount = 1;
+            int officeCount = 1;
             int univercityCount = 1;
-            int schoolCount = 3;
-            int nurseryCount = 3;
+            int schoolCount = 1;
+            int nurseryCount = 1;
 
             List<Message> messagesToSend = new List<Message>();
             int currentId = 0;
@@ -344,6 +351,8 @@ namespace GlobalDescriptorWorker
             int idx = this.random.Next(0, containersWithType.Count - 1);
             ContainersCore container = containersWithType[idx];
             ContainersCore oldContainer = this.agentLocations[amsg.agentId];
+
+            amsg.containerId = container.Id;
 
             Guid workerId = this.containers2workers[container.Id];
             MessageTransportSystem.Instance.SendMessage(amsg, workerId);
