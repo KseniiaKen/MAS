@@ -81,6 +81,14 @@ namespace GlobalDescriptorWorker
             }
         }
 
+        public int WorkersCount
+        {
+            get
+            {
+                return this.workers.Count;
+            }
+        }
+
         public void StartListening()
         {
             OnMessageOptions options = new OnMessageOptions();
@@ -114,6 +122,7 @@ namespace GlobalDescriptorWorker
                             break;
                         case "AddContainerMessage":
                         case "TickMessage":
+                        case "StartMessage":
                             Trace.TraceWarning("Warning: Received unexpected message. Type: {0}", receivedMessage.ContentType);
                             break;
                     }

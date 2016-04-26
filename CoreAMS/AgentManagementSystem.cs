@@ -22,11 +22,17 @@ namespace CoreAMS.AgentManagementSystem
         public static int funeralAgentsCount;
         public static int deadAgentsCount;
 
+        public static int totalAgents;
+        public static int totalContainers;
+        public static int totalWorkers;
+
         public static AutoResetEvent NextTimeEvent = new AutoResetEvent(false);
 
         // Запуск всех агентов
         public static void RunAgents()
         {
+            int avgNumberOfAgents = totalAgents / totalWorkers;
+
             while (true)
             {
                 NextTimeEvent.WaitOne();
@@ -44,7 +50,12 @@ namespace CoreAMS.AgentManagementSystem
                          }
                          Console.WriteLine();
                      }
-                 }*/                
+                 }*/
+
+                if (agents.Count - avgNumberOfAgents > 100)
+                {
+                    Trace.TraceInformation("Too many agents: {0}. Average: {1}", agents.Count, avgNumberOfAgents);
+                }
 
                 // запускаем каждый агент (агенты меняют свои состояния)
                 for (int i = 0; i < agents.Count; ++i)

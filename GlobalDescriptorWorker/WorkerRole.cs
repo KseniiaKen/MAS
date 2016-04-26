@@ -252,7 +252,7 @@ namespace GlobalDescriptorWorker
             this.fillContainers();
             // fillAgents();
 
-            MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Start));
+            MessageTransportSystem.Instance.SendEveryone(new StartMessage(MessageTransportSystem.Instance.Id, this.agentLocations.Count, this.containers2workers.Count, MessageTransportSystem.Instance.WorkersCount));
 
             startTick();
 

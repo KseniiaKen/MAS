@@ -125,6 +125,11 @@ namespace CloudSimulationWorker
         {
             ThreadPool.QueueUserWorkItem((obj) =>
             {
+                StartMessage smessage = (StartMessage)message;
+                Trace.TraceInformation("Started. System Info: Agents: {0}; Containers: {1}; Workers: {2}", smessage.totalAgents, smessage.totalContainers, smessage.totalWorkers);
+                AgentManagementSystem.totalAgents = smessage.totalAgents;
+                AgentManagementSystem.totalContainers = smessage.totalContainers;
+                AgentManagementSystem.totalWorkers = smessage.totalWorkers;
                 AgentManagementSystem.RunAgents();
                 Trace.TraceInformation("Results:\nSusceptible: {0}\nRecovered: {3}\nInfectious: {5}\nFuneral: {1}\nDead: {2}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
                         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time, AgentManagementSystem.infectiousAgentsCount);
