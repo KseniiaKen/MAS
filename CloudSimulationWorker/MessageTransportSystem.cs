@@ -14,7 +14,7 @@ namespace CloudSimulationWorker
     public class MessageTransportSystem : CoreAMS.MessageTransportSystem.IMessageTransportSystem
     {
         private static Guid NODE_ID = Guid.NewGuid();
-        private const string GLOBAL_DESCRIPTOR_QUEUE_NAME = "GlobalDescriptor";
+        private const string GLOBAL_DESCRIPTOR_QUEUE_NAME = "DB3C13B1-0D35-4885-9F4A-393ED089CBEB";
         private const string CONNECTION_STRING = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
 
         public delegate void MessageEventHandler(Message message);
@@ -27,8 +27,8 @@ namespace CloudSimulationWorker
 
         private static MessageTransportSystem instance = new MessageTransportSystem();
 
-        private QueueClient client;
-        private QueueClient globalDescriptorClient;
+        private SubscriptionClient client;
+        private TopicClient globalDescriptorClient;
 
         public static MessageTransportSystem Instance
         {
@@ -56,13 +56,17 @@ namespace CloudSimulationWorker
             ServicePointManager.DefaultConnectionLimit = 12;
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(CONNECTION_STRING);
-            if (!namespaceManager.QueueExists(NODE_ID.ToString()))
+            if (!namespaceManager.TopicExists(GLOBAL_DESCRIPTOR_QUEUE_NAME))
             {
-                namespaceManager.CreateQueue(NODE_ID.ToString());
+                namespaceManager.CreateTopic(GLOBAL_DESCRIPTOR_QUEUE_NAME);
             }
-            this.client = QueueClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID.ToString(), ReceiveMode.ReceiveAndDelete);
-
-            this.globalDescriptorClient = QueueClient.CreateFromConnectionString(CONNECTION_STRING, GLOBAL_DESCRIPTOR_QUEUE_NAME);
+            if (!namespaceManager.SubscriptionExists(GLOBAL_DESCRIPTOR_QUEUE_NAME, this.Id.ToString()))
+            {
+                Filter filter = new SqlFilter(String.Format("receiverId = '{0}'", this.Id.ToString()));
+                namespaceManager.CreateSubscription(GLOBAL_DESCRIPTOR_QUEUE_NAME, this.Id.ToString(), filter);
+            }
+            this.client = SubscriptionClient.CreateFromConnectionString(CONNECTION_STRING, GLOBAL_DESCRIPTOR_QUEUE_NAME, this.Id.ToString(), ReceiveMode.ReceiveAndDelete);
+            this.globalDescriptorClient = TopicClient.CreateFromConnectionString(CONNECTION_STRING, GLOBAL_DESCRIPTOR_QUEUE_NAME);
         }
 
         public void DeInit()
@@ -175,6 +179,7 @@ namespace CloudSimulationWorker
         {
             var msg = new BrokeredMessage(message);
             msg.ContentType = message.GetType().Name;
+            msg.Properties["receiverId"] = new Guid(GLOBAL_DESCRIPTOR_QUEUE_NAME).ToString();
             this.globalDescriptorClient.Send(msg);
         }
 

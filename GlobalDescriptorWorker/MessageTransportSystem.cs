@@ -13,8 +13,8 @@ namespace GlobalDescriptorWorker
 {
     public class MessageTransportSystem : CoreAMS.MessageTransportSystem.IMessageTransportSystem
     {
-        private const string NODE_ID = "GlobalDescriptor";
-        private static Guid guid = Guid.NewGuid();
+        private const string NODE_ID = "DB3C13B1-0D35-4885-9F4A-393ED089CBEB";
+        private static Guid guid = new Guid(NODE_ID);
         private const string CONNECTION_STRING = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
 
         public delegate void MessageEventHandler(Message message);
@@ -26,8 +26,9 @@ namespace GlobalDescriptorWorker
 
         private static MessageTransportSystem instance = new MessageTransportSystem();
 
-        private QueueClient client;
-        private Dictionary<Guid, QueueClient> workers = new Dictionary<Guid, QueueClient>(); // список id worker-ов + клиенты. чтобы знать куда отправлять сообщения
+        private SubscriptionClient receiveClient;
+        private TopicClient sendClient;
+        private List<Guid> workers = new List<Guid>();
 
         public static MessageTransportSystem Instance
         {
@@ -55,29 +56,32 @@ namespace GlobalDescriptorWorker
             ServicePointManager.DefaultConnectionLimit = 12;
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(CONNECTION_STRING);
-            if (!namespaceManager.QueueExists(NODE_ID))
+            if (!namespaceManager.TopicExists(NODE_ID))
             {
-                namespaceManager.CreateQueue(NODE_ID);
+                namespaceManager.CreateTopic(NODE_ID);
             }
-            this.client = QueueClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID, ReceiveMode.ReceiveAndDelete);
+            this.sendClient = TopicClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID);
+            if (!namespaceManager.SubscriptionExists(NODE_ID, "MyMessages"))
+            {
+                Filter filter = new SqlFilter(String.Format("receiverId = '{0}'", this.Id.ToString()));
+                namespaceManager.CreateSubscription(NODE_ID, "MyMessages", filter);
+            }
+            this.receiveClient = SubscriptionClient.CreateFromConnectionString(CONNECTION_STRING, NODE_ID, "MyMessages", ReceiveMode.ReceiveAndDelete);
         }
 
         public void DeInit()
         {
-            if (client != null)
+            if (receiveClient != null)
             {
-                while (client.Peek() != null)
+                while (receiveClient.Peek() != null)
                 {
                     Trace.TraceInformation("Cleaning message");
-                    var brokeredMessage = client.Receive();
+                    var brokeredMessage = receiveClient.Receive();
                     brokeredMessage.Complete();
                 }
-                this.client.Close();
-            }
+                this.receiveClient.Close();
 
-            foreach (QueueClient c in this.workers.Values)
-            {
-                c.Close();
+                this.sendClient.Close();
             }
         }
 
@@ -101,7 +105,7 @@ namespace GlobalDescriptorWorker
 
             Trace.WriteLine("Starting processing of messages");
             // Start receiveing messages
-            this.client.OnMessage((receivedMessage) => // Initiates the message pump and callback is invoked for each message that is recieved, calling close on the client will stop the pump.
+            this.receiveClient.OnMessage((receivedMessage) => // Initiates the message pump and callback is invoked for each message that is recieved, calling close on the client will stop the pump.
             {
                 Message message = null;
                 try
@@ -176,8 +180,7 @@ namespace GlobalDescriptorWorker
 
         private void addClient(Guid clientId)
         {
-            QueueClient clientClient = QueueClient.CreateFromConnectionString(CONNECTION_STRING, clientId.ToString(), ReceiveMode.ReceiveAndDelete);
-            this.workers.Add(clientId, clientClient);
+            this.workers.Add(clientId);
         }
 
         public void SendMessage(Message message)
@@ -187,41 +190,42 @@ namespace GlobalDescriptorWorker
 
         public void SendMessage(Message message, Guid workerId)
         {
-            QueueClient workerData = this.workers[workerId];
-
-            if (workerData != null)
-            {
                 var msg = new BrokeredMessage(message);
                 msg.ContentType = message.GetType().Name;
-                workerData.Send(msg);
-            }
+                msg.Properties["receiverId"] = workerId.ToString();
+                this.sendClient.Send(msg);
         }
 
         public void SendEveryone(Message message)
         {
-            foreach (QueueClient c in this.workers.Values)
+            foreach (Guid c in this.workers)
             {
                 var msg = new BrokeredMessage(message);
                 msg.ContentType = message.GetType().Name;
-                c.Send(msg);
+                msg.Properties["receiverId"] = c.ToString();
+                sendClient.Send(msg);
             }
         }
 
         public Dictionary<Message, Guid> SendSpread(List<Message> messages)
         {
+            if (this.workers.Count == 0)
+            {
+                return new Dictionary<Message, Guid>();
+            }
+
             var result = new Dictionary<Message, Guid>();
 
             for (int i = 0; i< messages.Count; i++)
             {
                 int workerIdx = i % this.workers.Count;
-                var kvp = workers.ElementAt(workerIdx);
-                Guid workerId = kvp.Key;
-                QueueClient worker = kvp.Value;
+                Guid workerId = workers[workerIdx];
                 Message message = messages[i];
 
                 var msg = new BrokeredMessage(message);
                 msg.ContentType = message.GetType().Name;
-                worker.Send(msg);
+                msg.Properties["receiverId"] = workerId.ToString();
+                sendClient.Send(msg);
 
                 result[message] = workerId;
             }

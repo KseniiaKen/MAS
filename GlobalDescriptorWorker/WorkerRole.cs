@@ -42,6 +42,7 @@ namespace GlobalDescriptorWorker
         private Dictionary<Guid, List<AddAgentMessage>> addAgentMessages = new Dictionary<Guid, List<AddAgentMessage>>();
         private Dictionary<Guid, int> agentCounters = new Dictionary<Guid, int>();
         private List<int[]> totalResult = new List<int[]>();
+        private DateTime startTime = DateTime.Now;
 
         private void fillContainers()
         {
@@ -172,6 +173,7 @@ namespace GlobalDescriptorWorker
             int deadCount = 0;
             int exposedCount = 0;
             int time = 0;
+            TimeSpan realTime = DateTime.Now - this.startTime;
 
             foreach(ResultsMessage res in this.results.Values)
             {
@@ -184,16 +186,17 @@ namespace GlobalDescriptorWorker
                 time = (time >= res.time) ? time : res.time;
             }
 
-            this.totalResult.Add(new int[6] {
+            this.totalResult.Add(new int[7] {
                 suspectableCount,
                 recoveredCount,
                 infectiousCount,
                 funeralCount,
                 deadCount,
-                time
+                time,
+                (int)realTime.TotalSeconds
             });
 
-            Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum, exposedCount);
+            Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum, exposedCount, realTime);
         }
 
         private void calculateTotalResult()
@@ -204,8 +207,9 @@ namespace GlobalDescriptorWorker
             double funeralCount = this.totalResult.Select((d) => d[3]).Average();
             double deadCount = this.totalResult.Select((d) => d[4]).Average();
             double time = this.totalResult.Select((d) => d[5]).Average();
+            double realTime = this.totalResult.Select((d) => d[6]).Average();
 
-            Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time);
+            Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {6}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, realTime);
         }
 
         private void startTick()
@@ -254,6 +258,7 @@ namespace GlobalDescriptorWorker
             // fillAgents();
 
             MessageTransportSystem.Instance.SendEveryone(new StartMessage(MessageTransportSystem.Instance.Id, this.agentLocations.Count, this.containers2workers.Count, MessageTransportSystem.Instance.WorkersCount));
+            this.startTime = DateTime.Now;
 
             startTick();
 
