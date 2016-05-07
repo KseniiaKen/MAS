@@ -17,6 +17,7 @@ using CoreAMS.Global;
 using CoreAMS.AgentCore;
 using Agent.Agents;
 using CoreAMS;
+using System.IO;
 
 namespace GlobalDescriptorWorker
 {
@@ -193,6 +194,17 @@ namespace GlobalDescriptorWorker
                 // Trace.TraceInformation("Intermediate results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, GlobalTime.Day, exposedCount, realTime);
                 Trace.TraceInformation("Intermediate results ({6}): {0} {1} {7} {2} {3} {4} {5} {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, GlobalTime.Day, exposedCount, realTime);
 
+                saveResult(new Result(
+                    suspectableCount,
+                    recoveredCount,
+                    exposedCount,
+                    infectiousCount,
+                    funeralCount,
+                    deadCount,
+                    time,
+                    (int)realTime.TotalSeconds
+                    ), "intermediate");
+
                 foreach (var key in this.results.Keys)
                 {
                     this.intermediateResults[key] = null;
@@ -222,7 +234,7 @@ namespace GlobalDescriptorWorker
                 time = (time >= res.executionTime) ? time : res.executionTime;
             }
 
-            this.totalResult.Add(new Result(
+            Result newResult = new Result(
                 suspectableCount,
                 recoveredCount,
                 exposedCount,
@@ -231,7 +243,10 @@ namespace GlobalDescriptorWorker
                 deadCount,
                 time,
                 (int)realTime.TotalSeconds
-            ));
+            );
+
+            this.totalResult.Add(newResult);
+            saveResult(newResult, "");
 
             Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum, exposedCount, realTime);
         }
@@ -247,6 +262,49 @@ namespace GlobalDescriptorWorker
             double realTime = this.totalResult.Select((d) => d.realTime).Average();
 
             Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {6}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, realTime);
+        }
+
+        private static void saveResult(Result result, string suffix)
+        {
+            string fileName = String.Format("D:/FileOfResults_{0}.csv", suffix);
+            string lineFormat = "{0},{1},{2},{3},{4},{5},{6},{7},{8}";
+
+            bool isNewFile = false;
+
+            if (!File.Exists(fileName))
+            {
+                isNewFile = true;
+                File.Create(fileName).Dispose();
+            }
+
+            using (StreamWriter resultsFile = File.AppendText(fileName))
+            {
+                if (isNewFile)
+                {
+                    resultsFile.WriteLine(lineFormat,
+                        "current_time",
+                        "suspectable",
+                        "recovered",
+                        "exposed",
+                        "infectious",
+                        "funeral",
+                        "dead",
+                        "execution time",
+                        "execution real time"
+                        );
+                }
+                resultsFile.WriteLine(lineFormat, 
+                    DateTime.Now,
+                    result.suspectableCount, 
+                    result.recoveredCount, 
+                    result.exposedCount, 
+                    result.infectiousCount, 
+                    result.funeralCount, 
+                    result.deadCount, 
+                    result.executionTime, 
+                    result.realTime
+                    );
+            }
         }
 
         private void startTick()
