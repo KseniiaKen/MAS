@@ -14,7 +14,7 @@ using CoreAMS.Global;
 namespace CoreAMS.MessageTransportSystem
 {
     // Класс сообщения.
-    public class AgentMessage{
+    public class AgentMessage {
         public int receiverAgentId; // ID агента получателя
         public int senderAgentId;   // ID агента отправителя
         public string message;      // передаваемое сообщение
@@ -45,12 +45,13 @@ namespace CoreAMS.MessageTransportSystem
         private List<AbstractPerson> gotoAgents = new List<AbstractPerson>();
         private List<Enums.ContainerType> gotoContainers = new List<Enums.ContainerType>();
         private AddContainerMessage moveContainerMessage = null;
+        private Result intermediateResult = null;
 
         public static MessageTransfer Instance
         {
             get
             {
-                return instance; 
+                return instance;
             }
         }
 
@@ -77,8 +78,13 @@ namespace CoreAMS.MessageTransportSystem
         //Нам нужен метод, отправляющий сообщения о заражении не случайным агентам, а находящимся в одной локации.
 
         public void SendTickEnd()
-        {            
+        {
             this.transportSystem.SendMessage(new Message(this.transportSystem.Id, MessageType.TickEnd));
+        }
+
+        public void SetResults(int suspectableCount, int recoveredCount, int infectiousCount, int funeralCount, int deadCount, int exposedCount, int time)
+        {
+            this.intermediateResult = new Result(suspectableCount, recoveredCount, exposedCount, infectiousCount, funeralCount, deadCount, time);
         }
 
         public void AddToGoto(AbstractPerson agent, Enums.ContainerType containerType)
@@ -126,6 +132,8 @@ namespace CoreAMS.MessageTransportSystem
                     msg.containerToMove = this.moveContainerMessage;
                 }
 
+                msg.currentResult = this.intermediateResult;
+
                 this.transportSystem.SendMessage(msg);
                 foreach (AbstractPerson a in this.gotoAgents)
                 {
@@ -149,6 +157,7 @@ namespace CoreAMS.MessageTransportSystem
                 gotoContainers.Clear();
                 infectedAgents.Clear();
                 this.moveContainerMessage = null;
+                this.intermediateResult = null;
             }
         }
 

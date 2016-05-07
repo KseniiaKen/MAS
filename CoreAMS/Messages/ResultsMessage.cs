@@ -9,23 +9,16 @@ namespace CoreAMS.Messages
     [Serializable]
     public class ResultsMessage: Message
     {
-        public int suspectableCount;
-        public int recoveredCount;
-        public int infectiousCount;
-        public int funeralCount;
-        public int deadCount;
-        public int exposedCount;
-        public int time;
+        public Result result;
 
         public ResultsMessage(Guid senderId, int suspectableCount, int recoveredCount, int infectiousCount, int funeralCount, int deadCount, int exposedCount, int time) : base(senderId, MessageType.Results)
         {
-            this.suspectableCount = suspectableCount;
-            this.recoveredCount = recoveredCount;
-            this.infectiousCount = infectiousCount;
-            this.funeralCount = funeralCount;
-            this.deadCount = deadCount;
-            this.exposedCount = exposedCount;
-            this.time = time;
+            this.result = new Result(suspectableCount, recoveredCount, exposedCount, infectiousCount, funeralCount, deadCount, time);
+        }
+
+        public ResultsMessage(Guid senderId, Result result) : base(senderId, MessageType.Results)
+        {
+            this.result = result;
         }
     }
 }

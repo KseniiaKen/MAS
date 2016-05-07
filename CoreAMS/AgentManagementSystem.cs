@@ -92,6 +92,8 @@ namespace CoreAMS.AgentManagementSystem
                     Trace.TraceInformation("{5}: {0} {3} {4} {1} {2}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
         AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, AgentManagementSystem.infectiousAgentsCount, GlobalTime.Day);
 
+                    MessageTransportSystem.MessageTransfer.Instance.SetResults(susceptibleAgentsCount, recoveredAgentsCount, infectiousAgentsCount, funeralAgentsCount, deadAgentsCount, exposedAgentsCount, GlobalTime.Time);
+
                 }
 
                 //MessageTransportSystem.MessageTransfer.SendTickEnd();

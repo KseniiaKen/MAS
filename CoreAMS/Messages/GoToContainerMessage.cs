@@ -16,6 +16,8 @@ namespace CoreAMS.Messages
 
         public AddContainerMessage containerToMove = null;
 
+        public Result currentResult = null;
+
         public int agentCount = 0;
 
         public GoToContainerMessage(Guid senderId, AddAgentMessage[] agents, Enums.ContainerType[] containerIds, int[] infectionSourceAgentIds, int agentCount): base(senderId, MessageType.GoTo)

@@ -27,7 +27,7 @@ namespace GlobalDescriptorWorker
 
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
-        private const int numberOfIterations = 80;
+        private const int numberOfIterations = 3;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
@@ -36,12 +36,13 @@ namespace GlobalDescriptorWorker
 
         private List<Guid> workers = new List<Guid>();
         private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
-        private Dictionary<Guid, ResultsMessage> results = new Dictionary<Guid, ResultsMessage>(); // список id worker-ов + их результаты
+        private Dictionary<Guid, Result> results = new Dictionary<Guid, Result>(); // список id worker-ов + их результаты
+        private Dictionary<Guid, Result> intermediateResults = new Dictionary<Guid, Result>(); // список id worker-ов + их промежуточные результаты
         private Dictionary<int, Guid> containers2workers = new Dictionary<int, Guid>(); // в каком worker-е находится контейнер с id равным ключу
         private Dictionary<int, ContainersCore> agentLocations = new Dictionary<int, ContainersCore>();
         private Dictionary<Guid, List<AddAgentMessage>> addAgentMessages = new Dictionary<Guid, List<AddAgentMessage>>();
         private Dictionary<Guid, int> agentCounters = new Dictionary<Guid, int>();
-        private List<int[]> totalResult = new List<int[]>();
+        private List<Result> totalResult = new List<Result>();
         private DateTime startTime = DateTime.Now;
 
         private void fillContainers()
@@ -164,6 +165,41 @@ namespace GlobalDescriptorWorker
             }
         }
 
+        private void calculateIntermediateResults()
+        {
+            lock (this.intermediateResults)
+            {
+
+                int suspectableCount = 0;
+                int recoveredCount = 0;
+                int infectiousCount = 0;
+                int funeralCount = 0;
+                int deadCount = 0;
+                int exposedCount = 0;
+                int time = 0;
+                TimeSpan realTime = DateTime.Now - this.startTime;
+
+                foreach (Result res in this.intermediateResults.Values)
+                {
+                    suspectableCount += res.suspectableCount;
+                    recoveredCount += res.recoveredCount;
+                    infectiousCount += res.infectiousCount;
+                    funeralCount += res.funeralCount;
+                    deadCount += res.deadCount;
+                    exposedCount += res.exposedCount;
+                    time = (time >= res.executionTime) ? time : res.executionTime;
+                }
+
+                // Trace.TraceInformation("Intermediate results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, GlobalTime.Day, exposedCount, realTime);
+                Trace.TraceInformation("Intermediate results ({6}): {0} {1} {7} {2} {3} {4} {5} {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, GlobalTime.Day, exposedCount, realTime);
+
+                foreach (var key in this.results.Keys)
+                {
+                    this.intermediateResults[key] = null;
+                }
+            }
+        }
+
         private void calculateResult()
         {
             int suspectableCount = 0;
@@ -175,7 +211,7 @@ namespace GlobalDescriptorWorker
             int time = 0;
             TimeSpan realTime = DateTime.Now - this.startTime;
 
-            foreach(ResultsMessage res in this.results.Values)
+            foreach (Result res in this.results.Values)
             {
                 suspectableCount += res.suspectableCount;
                 recoveredCount += res.recoveredCount;
@@ -183,31 +219,32 @@ namespace GlobalDescriptorWorker
                 funeralCount += res.funeralCount;
                 deadCount += res.deadCount;
                 exposedCount += res.exposedCount;
-                time = (time >= res.time) ? time : res.time;
+                time = (time >= res.executionTime) ? time : res.executionTime;
             }
 
-            this.totalResult.Add(new int[7] {
+            this.totalResult.Add(new Result(
                 suspectableCount,
                 recoveredCount,
+                exposedCount,
                 infectiousCount,
                 funeralCount,
                 deadCount,
                 time,
                 (int)realTime.TotalSeconds
-            });
+            ));
 
             Trace.TraceInformation("Results ({6}):\nSuspectable: {0}\nRecovered: {1}\nExposed: {7}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {8}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, this.iterationNum, exposedCount, realTime);
         }
 
         private void calculateTotalResult()
         {
-            double suspectableCount = this.totalResult.Select((d) => d[0]).Average();
-            double recoveredCount = this.totalResult.Select((d) => d[1]).Average();
-            double infectiousCount = this.totalResult.Select((d) => d[2]).Average();
-            double funeralCount = this.totalResult.Select((d) => d[3]).Average();
-            double deadCount = this.totalResult.Select((d) => d[4]).Average();
-            double time = this.totalResult.Select((d) => d[5]).Average();
-            double realTime = this.totalResult.Select((d) => d[6]).Average();
+            double suspectableCount = this.totalResult.Select((d) => d.suspectableCount).Average();
+            double recoveredCount = this.totalResult.Select((d) => d.recoveredCount).Average();
+            double infectiousCount = this.totalResult.Select((d) => d.infectiousCount).Average();
+            double funeralCount = this.totalResult.Select((d) => d.funeralCount).Average();
+            double deadCount = this.totalResult.Select((d) => d.deadCount).Average();
+            double time = this.totalResult.Select((d) => d.executionTime).Average();
+            double realTime = this.totalResult.Select((d) => d.realTime).Average();
 
             Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {6}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, realTime);
         }
@@ -222,6 +259,11 @@ namespace GlobalDescriptorWorker
                     if (!waitRes)
                     {
                         Trace.TraceWarning("!!! Wait timeout !!!");
+                    }
+
+                    if (GlobalTime.Time != 0 && GlobalTime.realTime == 0 && this.intermediateResults.Values.All((res) => res != null))
+                    {
+                        this.calculateIntermediateResults();
                     }
 
                     GlobalTime.Time += 1;
@@ -420,13 +462,20 @@ namespace GlobalDescriptorWorker
 
                 this.agentCounters[message.senderId] = gtMessage.agentCount;
 
+                if (gtMessage.currentResult != null) {
+                    lock (this.intermediateResults)
+                    {
+                        this.intermediateResults[message.senderId] = gtMessage.currentResult;
+                    }
+                }
+
                 this.waiters[message.senderId].Set();
             }
         }
 
         private void moveContainer(AddContainerMessage message)
         {
-            Trace.TraceInformation("Container requested to move: {0}", message.containerId);
+            // Trace.TraceInformation("Container requested to move: {0}", message.containerId);
 
             // int idx = random.Next(0, this.results.Count - 1);
             // Guid workerId = this.results.ElementAt(idx).Key;
@@ -436,7 +485,7 @@ namespace GlobalDescriptorWorker
                 .OrderBy(kvp => kvp.Value)
                 .First().Key;
 
-            Trace.TraceInformation("Selected worker for container: {0}. Agent count: {1}", workerId, this.agentCounters[workerId]);
+            // Trace.TraceInformation("Selected worker for container: {0}. Agent count: {1}", workerId, this.agentCounters[workerId]);
 
             MessageTransportSystem.Instance.SendMessage(message, workerId);
 
@@ -447,7 +496,7 @@ namespace GlobalDescriptorWorker
         {
             if (isStarted)
             {
-                this.results[message.senderId] = (ResultsMessage)message;
+                this.results[message.senderId] = (message as ResultsMessage).result;
                 if (this.results.Values.All((res) => res != null))
                 {
                     this.isStarted = false;
@@ -476,6 +525,7 @@ namespace GlobalDescriptorWorker
             this.workers.Add(message.senderId);
             this.waiters.Add(message.senderId, new AutoResetEvent(false));
             this.results.Add(message.senderId, null);
+            this.intermediateResults.Add(message.senderId, null);
             this.addAgentMessages.Add(message.senderId, new List<AddAgentMessage>());
             this.agentCounters.Add(message.senderId, 0);
         }
