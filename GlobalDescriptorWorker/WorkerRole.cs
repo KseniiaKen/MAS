@@ -28,7 +28,7 @@ namespace GlobalDescriptorWorker
 
         private const int registerTimeout = 60000;
         private const int waitTimeout = 30000;
-        private const int numberOfIterations = 3;
+        private const int numberOfIterations = 80;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
         private Random random = new Random();
         private bool isStarted = false;
@@ -48,13 +48,13 @@ namespace GlobalDescriptorWorker
 
         private void fillContainers()
         {
-            int homeCount = 1000;
-            int hospitalCount = 3;
+            int homeCount = 10000;
+            int hospitalCount = 4;
             int mallCount = 5;
-            int officeCount = 10;
+            int officeCount = 500;
             int univercityCount = 1;
-            int schoolCount = 3;
-            int nurseryCount = 3;
+            int schoolCount = 23;
+            int nurseryCount = 2;
             //int homeCount = 1;
             //int hospitalCount = 1;
             //int mallCount = 1;
@@ -76,16 +76,16 @@ namespace GlobalDescriptorWorker
             }
             // Everyone at home at the beginning
             List<Person> p = new List<Person>();
-            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
-            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Susceptible, 750, "LocationProbabilities"));
-            p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
-            p.AddRange(Adult.AdultList(Enums.HealthState.Susceptible, 2450, "LocationProbabilities"));
-            p.AddRange(Child.ChildList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
-            p.AddRange(Child.ChildList(Enums.HealthState.Susceptible, 250, "LocationProbabilities"));
-            p.AddRange(Elder.ElderList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
-            p.AddRange(Elder.ElderList(Enums.HealthState.Susceptible, 900, "LocationProbabilities"));
-            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 6, "LocationProbabilities"));
-            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Susceptible, 650, "LocationProbabilities"));
+            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Infectious, 4, "LocationProbabilities"));
+            p.AddRange(Adolescent.AdolescentList(Enums.HealthState.Susceptible, 4534, "LocationProbabilities"));
+            p.AddRange(Adult.AdultList(Enums.HealthState.Infectious, 4, "LocationProbabilities"));
+            p.AddRange(Adult.AdultList(Enums.HealthState.Susceptible, 14812, "LocationProbabilities"));
+            p.AddRange(Child.ChildList(Enums.HealthState.Infectious, 4, "LocationProbabilities"));
+            p.AddRange(Child.ChildList(Enums.HealthState.Susceptible, 1511, "LocationProbabilities"));
+            p.AddRange(Elder.ElderList(Enums.HealthState.Infectious, 4, "LocationProbabilities"));
+            p.AddRange(Elder.ElderList(Enums.HealthState.Susceptible, 5441, "LocationProbabilities"));
+            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Infectious, 4, "LocationProbabilities"));
+            p.AddRange(Youngster.YoungsterList(Enums.HealthState.Susceptible, 3930, "LocationProbabilities"));
             for (int i = 0; i < p.Count; i++)
             {
                 int homeNum = i % homeCount;
@@ -391,6 +391,7 @@ namespace GlobalDescriptorWorker
             Containers.Instance.Clear();
             this.containers2workers.Clear();
             this.agentLocations.Clear();
+            GlobalTime.Time = 0;
 
             for (int i = 0; i < this.results.Count; i++)
             {

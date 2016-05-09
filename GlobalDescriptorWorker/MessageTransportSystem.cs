@@ -13,7 +13,7 @@ namespace GlobalDescriptorWorker
 {
     public class MessageTransportSystem : CoreAMS.MessageTransportSystem.IMessageTransportSystem
     {
-        private const string NODE_ID = "DB3C13B1-0D35-4885-9F4A-393ED089CBEB";
+        private const string NODE_ID = "FF76E790-80DE-4DC6-8712-6D661C9807C5";
         private static Guid guid = new Guid(NODE_ID);
         private const string CONNECTION_STRING = @"Endpoint=sb://My_computer/ServiceBusDefaultNamespace;StsEndpoint=https://My_computer:9355/ServiceBusDefaultNamespace;RuntimePort=9354;ManagementPort=9355";
 
