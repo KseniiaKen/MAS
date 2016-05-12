@@ -18,6 +18,7 @@ using CoreAMS.AgentCore;
 using Agent.Agents;
 using CoreAMS;
 using System.IO;
+using CoreAMS.AgentManagementSystem;
 
 namespace GlobalDescriptorWorker
 {
@@ -29,9 +30,8 @@ namespace GlobalDescriptorWorker
         private const int registerTimeout = 60000;
         private const int restartTimeout = 6000;
         private const int waitTimeout = 30000;
-        private const int numberOfIterations = 80;
+        private const int numberOfIterations = 4;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
-        private Random random = new Random();
         private bool isStarted = false;
         private Thread tickThread;
         private int iterationNum = 0;
@@ -531,7 +531,7 @@ namespace GlobalDescriptorWorker
                 return;
             }
 
-            int idx = this.random.Next(0, containersWithType.Count - 1);
+            int idx = GlobalAgentDescriptorTable.random.Next(0, containersWithType.Count - 1);
             ContainersCore container = containersWithType[idx];
             ContainersCore oldContainer = this.agentLocations[amsg.agentId];
 

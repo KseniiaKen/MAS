@@ -38,7 +38,7 @@ namespace Agent.Agents
         //private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
 
         private const DeathMode deathMode = DeathMode.AlmostImmediate;
-        private const double FUNERAL_PROBABILITY = 0.01; //вероятность смерти
+        private const double FUNERAL_PROBABILITY = 0.008; //вероятность смерти
         private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
         private const double INFECTION_PROBABILITY = 0.0099; // вероятность заразиться при встрече с больным агентом
 
@@ -47,7 +47,6 @@ namespace Agent.Agents
         //private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
         //private const double INFECTION_PROBABILITY = 0.013; // вероятность заразиться при встрече с больным агентом
 
-        private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
         private bool isBeingInfected = false;          // true, если пошёл процесс заражения; после того, как заразился, true заменяетс на false.
@@ -131,7 +130,7 @@ namespace Agent.Agents
         public override void SendMessage()
         {
             // выбираем случайного агента и отправляем ему сообщение, что он инфицирован
-            if (r.NextDouble() <= INFECTION_PROBABILITY)
+            if (GlobalAgentDescriptorTable.random.NextDouble() <= INFECTION_PROBABILITY)
             {
                 // MessageTransfer.Instance.AddInfect(new AgentMessage(Enums.HealthState.Infectious.ToString(), -1, Id));
                 AbstractPerson personToInfect = GlobalAgentDescriptorTable.SameLocationPerson(this.Id);
@@ -157,7 +156,7 @@ namespace Agent.Agents
             var matchingRules = locationProbabilities.Where(p => p.Key.startTime <= GlobalTime.realTime && p.Key.endTime > GlobalTime.realTime);
             double probabilitiesSum = matchingRules.Select(p => p.Value).Sum();
             double scale = 1.0d / probabilitiesSum;
-            double picked = r.NextDouble();
+            double picked = GlobalAgentDescriptorTable.random.NextDouble();
             foreach(var kvp in matchingRules)
             {
                 if (picked < kvp.Value * scale)
@@ -221,7 +220,7 @@ namespace Agent.Agents
                             //может умереть, а не выздороветь:
                             if (GlobalTime.Time == changeTime)
                             {
-                                if (r.NextDouble() >= FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
+                                if (GlobalAgentDescriptorTable.random.NextDouble() >= FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
                                 {
 
                                     SetHealthState(Enums.HealthState.Recovering);
@@ -237,7 +236,7 @@ namespace Agent.Agents
                         case DeathMode.AlmostImmediate:
                             if ((changeTime - GlobalTime.Time) / 24 <= 2)
                             {
-                                if (r.NextDouble() < FUNERAL_PROBABILITY)
+                                if (GlobalAgentDescriptorTable.random.NextDouble() < FUNERAL_PROBABILITY)
                                 {
                                     SetHealthState(Enums.HealthState.Funeral);
                                     changeTime = GlobalTime.Time + funeralTime;
@@ -253,7 +252,7 @@ namespace Agent.Agents
                         case DeathMode.Long:
                             // Когда наступает время, агент переходит в состояние Recovered
                             //может умереть, а не выздороветь:
-                            if (GlobalTime.realTime == 0 && r.NextDouble() < FUNERAL_PROBABILITY * (infectiousTime - (changeTime - GlobalTime.Time)) / 24)  //r.Next(0, 99); — получить следующее случайное число
+                            if (GlobalTime.realTime == 0 && GlobalAgentDescriptorTable.random.NextDouble() < FUNERAL_PROBABILITY * (infectiousTime - (changeTime - GlobalTime.Time)) / 24)  //r.Next(0, 99); — получить следующее случайное число
                             {
                                 SetHealthState(Enums.HealthState.Funeral);
                                 changeTime = GlobalTime.Time + funeralTime;
@@ -287,7 +286,7 @@ namespace Agent.Agents
 
                     if (GlobalTime.Time == changeTime)
                     {
-                        if (r.NextDouble() < DEATH_PROBABILITY)
+                        if (GlobalAgentDescriptorTable.random.NextDouble() < DEATH_PROBABILITY)
                         {
                             SetHealthState(Enums.HealthState.Dead);
                         }

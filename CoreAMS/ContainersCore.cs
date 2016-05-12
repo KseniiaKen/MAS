@@ -1,4 +1,5 @@
 ﻿using CoreAMS.AgentCore;
+using CoreAMS.AgentManagementSystem;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,8 +11,6 @@ namespace CoreAMS
 {
     public abstract class ContainersCore
     {
-        private Random random = new Random();
-
         //заполнение параметров контейнера
         protected ContainersCore(Enums.ContainerType containerType, int id, double area, double dencity) {
             this.containerType = containerType;
@@ -57,7 +56,7 @@ namespace CoreAMS
         public int GetRandomAgent()
         {
             //Trace.TraceInformation("Agents in container: {0}", agentIdsInCurrentContainer.Count);
-            int idx = this.random.Next(0, this.agentIdsInCurrentContainer.Count - 1);
+            int idx = GlobalAgentDescriptorTable.random.Next(0, this.agentIdsInCurrentContainer.Count - 1);
             return agentIdsInCurrentContainer[idx];
         }
 

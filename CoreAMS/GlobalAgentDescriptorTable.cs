@@ -14,7 +14,7 @@ namespace CoreAMS.AgentManagementSystem
         private static Dictionary<int, IAgent> agentDictionary = new Dictionary<int, IAgent>(); // хранятся список агентов и их ID
         private static int key = 0;
         private static object threadLock = new object();
-        private static Random random = new Random();
+        public static Random random = new Random();
 
 
         public static int GetNewId
