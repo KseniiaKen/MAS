@@ -24,7 +24,8 @@ namespace CoreAMS
             Infectious,
             Funeral,
             Dead,
-            Recovered
+            Recovered,
+            Recovering
 
         }
 

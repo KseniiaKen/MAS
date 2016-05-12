@@ -166,26 +166,29 @@ namespace CoreAMS.AgentManagementSystem
         // Finds contained to be moved to another worker
         public static ContainersCore FindContainerToMove()
         {
-            var countByContainer = agentDictionary.Values
-                .Where(a => a is AbstractPerson)
-                .Select(a => (AbstractPerson)a)
-                .GroupBy(p => p.currentContainerId)
-                .Where(g => g.Key != -1)
-                .Select(g => new KeyValuePair<int, int>(g.Key, g.Count()))
-                .OrderBy(kvp => kvp.Value);
-
-            if (countByContainer.Count() > 2)
+            lock (agentDictionary)
             {
-                //int idx = countByContainer.Count() / 2;
-                //int containerId = countByContainer.ElementAt(idx).Key;
+                var countByContainer = agentDictionary.Values
+                    .Where(a => a is AbstractPerson)
+                    .Select(a => (AbstractPerson)a)
+                    .GroupBy(p => p.currentContainerId)
+                    .Where(g => g.Key != -1)
+                    .Select(g => new KeyValuePair<int, int>(g.Key, g.Count()))
+                    .OrderBy(kvp => kvp.Value);
 
-                int containerId = countByContainer.First().Key;
+                if (countByContainer.Count() > 2)
+                {
+                    //int idx = countByContainer.Count() / 2;
+                    //int containerId = countByContainer.ElementAt(idx).Key;
 
-                return Containers.Instance[containerId];
-            }
-            else
-            {
-                return null;
+                    int containerId = countByContainer.First().Key;
+
+                    return Containers.Instance[containerId];
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
     }

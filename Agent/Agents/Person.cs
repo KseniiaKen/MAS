@@ -25,18 +25,37 @@ namespace Agent.Agents
 
         public Dictionary<LocationProbabilitiesKey, double> locationProbabilities = new Dictionary<LocationProbabilitiesKey, double>();
 
-        private const double FUNERAL_PROBABILITY = 0.9; //вероятность смерти
+        private enum DeathMode
+        {
+            Immediate,
+            AlmostImmediate,
+            Long
+        }
+
+        //private const DeathMode immediateDeath = DeathMode.Immediate;
+        //private const double FUNERAL_PROBABILITY = 0.015; //вероятность смерти
+        //private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
+        //private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
+
+        private const DeathMode deathMode = DeathMode.AlmostImmediate;
+        private const double FUNERAL_PROBABILITY = 0.015; //вероятность смерти
         private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
-        private const double INFECTION_PROBABILITY = 0.013; // вероятность заразиться при встрече с больным агентом
+        private const double INFECTION_PROBABILITY = 0.008; // вероятность заразиться при встрече с больным агентом
+
+        //private const DeathMode immediateDeath = DeathMode.Long;
+        //private const double FUNERAL_PROBABILITY = 0.9; //вероятность смерти
+        //private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
+        //private const double INFECTION_PROBABILITY = 0.013; // вероятность заразиться при встрече с больным агентом
+
         private static Random r = new Random();   //генератор случайных чисел
         private CoreAMS.Enums.HealthState healthState; // состояние здоровья агента
         private int changeTime;                        // время, когда агент должен перейти из одного состояния в другое
         private bool isBeingInfected = false;          // true, если пошёл процесс заражения; после того, как заразился, true заменяетс на false.
-        private const bool immediateDeath = true;
       
         // Время протекания каждой стадии и время заражения других людей
         private int exposedTime = 10 * Enums.HoursDay;
         private int infectiousTime = 10 * Enums.HoursDay;
+        private int recoveringTime = 10 * Enums.HoursDay;
         private int recoveredTime = 9000 * Enums.HoursWeek;
         private int funeralTime = (int)(4.5 * (float)Enums.HoursDay);
 
@@ -195,42 +214,71 @@ namespace Agent.Agents
                     if ((changeTime - GlobalTime.Time) % infectedOtherAgentTime == 0)
                         SendMessage();
 
-                    if (immediateDeath)
+                    switch(deathMode)
                     {
-                        // Когда наступает время, агент переходит в состояние Recovered
-                        //может умереть, а не выздороветь:
-                        if (GlobalTime.Time == changeTime)
-                        {
-                            if (r.NextDouble() >= FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
+                        case DeathMode.Immediate:
+                            // Когда наступает время, агент переходит в состояние Recovered
+                            //может умереть, а не выздороветь:
+                            if (GlobalTime.Time == changeTime)
                             {
+                                if (r.NextDouble() >= FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
+                                {
 
-                                SetHealthState(Enums.HealthState.Recovered);
-                                changeTime = GlobalTime.Time + recoveredTime;
+                                    SetHealthState(Enums.HealthState.Recovering);
+                                    changeTime = GlobalTime.Time + recoveringTime;
+                                }
+                                else
+                                {
+                                    SetHealthState(Enums.HealthState.Funeral);
+                                    changeTime = GlobalTime.Time + funeralTime;
+                                }
                             }
-                            else
+                            break;
+                        case DeathMode.AlmostImmediate:
+                            if ((changeTime - GlobalTime.Time) / 24 <= 2)
+                            {
+                                if (r.NextDouble() < FUNERAL_PROBABILITY)
+                                {
+                                    SetHealthState(Enums.HealthState.Funeral);
+                                    changeTime = GlobalTime.Time + funeralTime;
+                                    break;
+                                }
+                            }
+                            if (GlobalTime.Time == changeTime)
+                            {
+                                SetHealthState(Enums.HealthState.Recovering);
+                                changeTime = GlobalTime.Time + recoveringTime;
+                            }
+                            break;
+                        case DeathMode.Long:
+                            // Когда наступает время, агент переходит в состояние Recovered
+                            //может умереть, а не выздороветь:
+                            if (GlobalTime.realTime == 0 && r.NextDouble() < FUNERAL_PROBABILITY * (infectiousTime - (changeTime - GlobalTime.Time)) / 24)  //r.Next(0, 99); — получить следующее случайное число
                             {
                                 SetHealthState(Enums.HealthState.Funeral);
                                 changeTime = GlobalTime.Time + funeralTime;
+
                             }
-                        }
-                    }
-                    else
-                    {
-                        // Когда наступает время, агент переходит в состояние Recovered
-                        //может умереть, а не выздороветь:
-                        if (r.NextDouble() >= FUNERAL_PROBABILITY)  //r.Next(0, 99); — получить следующее случайное число
-                        {
-                            if (GlobalTime.Time == changeTime)
+                            else
                             {
-                                SetHealthState(Enums.HealthState.Recovered);
-                                changeTime = GlobalTime.Time + recoveredTime;
+                                if (GlobalTime.Time == changeTime)
+                                {
+                                    SetHealthState(Enums.HealthState.Recovering);
+                                    changeTime = GlobalTime.Time + recoveringTime;
+                                }
                             }
-                        }
-                        else
-                        {
-                            SetHealthState(Enums.HealthState.Funeral);
-                            changeTime = GlobalTime.Time + funeralTime;
-                        }
+                            break;
+                    }
+                    break;
+                case Enums.HealthState.Recovering:
+                    // Заражаем кого-либо каждые ? часов
+                    if ((changeTime - GlobalTime.Time) % infectedOtherAgentTime == 0)
+                        SendMessage();
+
+                    if (GlobalTime.Time == changeTime)
+                    {
+                        SetHealthState(Enums.HealthState.Recovered);
+                        changeTime = GlobalTime.Time + recoveredTime;
                     }
                     break;
                 case Enums.HealthState.Funeral:
