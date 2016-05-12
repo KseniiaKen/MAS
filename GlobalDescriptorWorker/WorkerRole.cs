@@ -27,6 +27,7 @@ namespace GlobalDescriptorWorker
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
         private const int registerTimeout = 60000;
+        private const int restartTimeout = 6000;
         private const int waitTimeout = 30000;
         private const int numberOfIterations = 80;
         private AutoResetEvent stopEvent = new AutoResetEvent(false);
@@ -34,6 +35,9 @@ namespace GlobalDescriptorWorker
         private bool isStarted = false;
         private Thread tickThread;
         private int iterationNum = 0;
+        private int totalAgents = 0;
+        private bool restarted = false;
+        private object restartLock = new object();
 
         private List<Guid> workers = new List<Guid>();
         private Dictionary<Guid, AutoResetEvent> waiters = new Dictionary<Guid, AutoResetEvent>();
@@ -94,6 +98,8 @@ namespace GlobalDescriptorWorker
                 this.agentLocations[a.GetId()] = Containers.Instance[homes[homeNum].containerId];
             }
             messagesToSend.AddRange(homes);
+
+            this.totalAgents = p.Count;
 
             // Messages for hospital containers creation
             List<AddContainerMessage> hospitals = new List<AddContainerMessage>();
@@ -255,13 +261,14 @@ namespace GlobalDescriptorWorker
         {
             double suspectableCount = this.totalResult.Select((d) => d.suspectableCount).Average();
             double recoveredCount = this.totalResult.Select((d) => d.recoveredCount).Average();
+            double exposedCount = this.totalResult.Select((d) => d.exposedCount).Average();
             double infectiousCount = this.totalResult.Select((d) => d.infectiousCount).Average();
             double funeralCount = this.totalResult.Select((d) => d.funeralCount).Average();
             double deadCount = this.totalResult.Select((d) => d.deadCount).Average();
             double time = this.totalResult.Select((d) => d.executionTime).Average();
             double realTime = this.totalResult.Select((d) => d.realTime).Average();
 
-            Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nInfectious: {2}\nFuneral: {3}\nDead: {4}\nTime: {5}\nReal time: {6}", suspectableCount, recoveredCount, infectiousCount, funeralCount, deadCount, time, realTime);
+            Trace.TraceInformation("Complete results:\nSuspectable: {0}\nRecovered: {1}\nExposed: {2}\nInfectious: {3}\nFuneral: {4}\nDead: {5}\nTime: {6}\nReal time: {7}", suspectableCount, recoveredCount, exposedCount, infectiousCount, funeralCount, deadCount, time, realTime);
         }
 
         private static void saveResult(Result result, string suffix)
@@ -319,6 +326,18 @@ namespace GlobalDescriptorWorker
                         Trace.TraceWarning("!!! Wait timeout !!!");
                     }
 
+                    if (!this.validateState())
+                    {
+                        this.iterationNum--;
+                        this.restart();
+                        return;
+                    }
+
+                    lock (this.restartLock)
+                    {
+                        this.restarted = false;
+                    }
+
                     if (GlobalTime.Time != 0 && GlobalTime.realTime == 0 && this.intermediateResults.Values.All((res) => res != null))
                     {
                         this.calculateIntermediateResults();
@@ -354,9 +373,12 @@ namespace GlobalDescriptorWorker
         {
             this.iterationNum++;
 
+            Trace.TraceInformation("Sending Fill agents");
+
             this.fillContainers();
             // fillAgents();
 
+            Trace.TraceInformation("Sending Start message");
             MessageTransportSystem.Instance.SendEveryone(new StartMessage(MessageTransportSystem.Instance.Id, this.agentLocations.Count, this.containers2workers.Count, MessageTransportSystem.Instance.WorkersCount));
             this.startTime = DateTime.Now;
 
@@ -368,9 +390,17 @@ namespace GlobalDescriptorWorker
 
         private void start()
         {
+            Trace.TraceInformation("start");
             ThreadPool.QueueUserWorkItem((obj) =>
             {
-                Thread.Sleep(registerTimeout);
+                if (iterationNum == 0)
+                {
+                    Thread.Sleep(registerTimeout);
+                }
+                else
+                {
+                    Thread.Sleep(restartTimeout);
+                }
 
                 Trace.TraceInformation("Workers:");
                 foreach (Guid g in this.workers)
@@ -383,21 +413,24 @@ namespace GlobalDescriptorWorker
 
         private void restart()
         {
+            Trace.TraceInformation("restart");
+
+            lock (this.restartLock)
+            {
+                if (this.restarted)
+                    return;
+
+                this.restarted = true;
+            }
+
+            Trace.TraceInformation("restart executed");
+
             foreach (AutoResetEvent e in this.waiters.Values)
                 e.Set();
 
+            Trace.TraceInformation("Sending Clear");
+
             MessageTransportSystem.Instance.SendEveryone(new Message(MessageTransportSystem.Instance.Id, MessageType.Clear));
-
-            Containers.Instance.Clear();
-            this.containers2workers.Clear();
-            this.agentLocations.Clear();
-            GlobalTime.Time = 0;
-
-            for (int i = 0; i < this.results.Count; i++)
-            {
-                var key = this.results.ElementAt(i).Key;
-                this.results[key] = null;
-            }
 
             if (this.iterationNum >= numberOfIterations)
             {
@@ -405,12 +438,43 @@ namespace GlobalDescriptorWorker
                 return;
             }
 
+            for (int i = 0; i < this.results.Count; i++)
+            {
+                this.results[this.results.ElementAt(i).Key] = null;
+            }
+            for (int i = 0; i < this.intermediateResults.Count; i++)
+            {
+                this.intermediateResults[this.intermediateResults.ElementAt(i).Key] = null;
+            }
+            Containers.Instance.Clear();
+            this.containers2workers.Clear();
+            this.agentLocations.Clear();
+            for (int i = 0; i < this.addAgentMessages.Count; i++)
+            {
+                this.addAgentMessages[this.addAgentMessages.ElementAt(i).Key].Clear();
+            }
+            for (int i = 0; i < this.agentCounters.Count; i++)
+            {
+                this.agentCounters[this.agentCounters.ElementAt(i).Key] = 0;
+            }
+            GlobalTime.Time = 0;
+
+            //this.results.Clear();
+            //this.intermediateResults.Clear();
+            //Containers.Instance.Clear();
+            //this.containers2workers.Clear();
+            //this.agentLocations.Clear();
+            //this.addAgentMessages.Clear();
+            //this.agentCounters.Clear();
+            //GlobalTime.Time = 0;
+
             Trace.TraceInformation("Restarting...");
 
             foreach (var w in this.waiters.Values)
                 w.Reset();
 
             this.start();
+
         }
 
         //private void infectOtherAgent(int sourceAgentId)
@@ -495,16 +559,31 @@ namespace GlobalDescriptorWorker
             this.stopEvent.WaitOne();
         }
 
+        private bool validateState()
+        {
+            if (this.intermediateResults.Values.All((result) => result != null))
+            {
+                int totalResultAgents = this.intermediateResults.Values.Select((result) => result.suspectableCount + result.recoveredCount + result.exposedCount + result.infectiousCount + result.funeralCount + result.deadCount).Sum();
+                if (Math.Abs(this.totalAgents - totalResultAgents) >= 100)
+                {
+                    Trace.TraceWarning("Too may agents lost. Initial: {0}; Current: {1}. Restarting.", this.totalAgents, totalResultAgents);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void onGotoMessage(Message message)
         {
             if (isStarted && this.workers.Contains(message.senderId))
             {
                 GoToContainerMessage gtMessage = (GoToContainerMessage)message;
 
-                foreach (int agentId in gtMessage.infectionSourceAgentIds)
-                {
-                    //this.infectOtherAgent(agentId);
-                }
+                //foreach (int agentId in gtMessage.infectionSourceAgentIds)
+                //{
+                //    this.infectOtherAgent(agentId);
+                //}
 
                 lock (this.addAgentMessages)
                 {

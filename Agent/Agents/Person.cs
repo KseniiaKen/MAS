@@ -38,9 +38,9 @@ namespace Agent.Agents
         //private const double INFECTION_PROBABILITY = 0.01; // вероятность заразиться при встрече с больным агентом
 
         private const DeathMode deathMode = DeathMode.AlmostImmediate;
-        private const double FUNERAL_PROBABILITY = 0.015; //вероятность смерти
+        private const double FUNERAL_PROBABILITY = 0.01; //вероятность смерти
         private const double DEATH_PROBABILITY = 0.99; //вероятность быть погребённым
-        private const double INFECTION_PROBABILITY = 0.008; // вероятность заразиться при встрече с больным агентом
+        private const double INFECTION_PROBABILITY = 0.0099; // вероятность заразиться при встрече с больным агентом
 
         //private const DeathMode immediateDeath = DeathMode.Long;
         //private const double FUNERAL_PROBABILITY = 0.9; //вероятность смерти

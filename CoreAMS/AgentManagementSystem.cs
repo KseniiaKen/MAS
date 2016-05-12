@@ -14,6 +14,9 @@ namespace CoreAMS.AgentManagementSystem
     // Менеджер агентов, для запуска всех агентов.
     public static class AgentManagementSystem
     {
+        private const int DAYS = 80;
+        private const int OVERFLOW_DIFF = 100;
+
         // Количество агентов каждого состояния
         public static int susceptibleAgentsCount;
         public static int exposedAgentsCount;
@@ -27,6 +30,7 @@ namespace CoreAMS.AgentManagementSystem
         public static int totalWorkers;
 
         public static AutoResetEvent NextTimeEvent = new AutoResetEvent(false);
+        public static bool finishFlag = false;
 
         // Запуск всех агентов
         public static void RunAgents()
@@ -52,7 +56,7 @@ namespace CoreAMS.AgentManagementSystem
                      }
                  }*/
 
-                if (agents.Count - avgNumberOfAgents > 100)
+                if (agents.Count - avgNumberOfAgents > OVERFLOW_DIFF)
                 {
                     Trace.TraceInformation("Too many agents: {0}. Average: {1}", agents.Count, avgNumberOfAgents);
 
@@ -100,7 +104,7 @@ namespace CoreAMS.AgentManagementSystem
                 MessageTransportSystem.MessageTransfer.Instance.SendGoto();
 
                 // if ((GlobalTime.Time > 1000 && exposedAgentsCount == 0 && infectiousAgentsCount == 0) || GlobalTime.Day >= 80) 
-                if (GlobalTime.Day >= 80)
+                if (GlobalTime.Day >= DAYS || finishFlag)
                 {
                     break;
                 }

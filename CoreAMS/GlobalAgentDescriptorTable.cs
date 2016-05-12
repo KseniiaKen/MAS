@@ -157,10 +157,14 @@ namespace CoreAMS.AgentManagementSystem
         // Returns agents present in container 
         public static IEnumerable<AbstractPerson> PersonsInContainer(int containerId)
         {
-            return
-                agentDictionary.Values
-                .Select(a => (AbstractPerson)a)
-                .Where(p => p.currentContainerId == containerId);
+            lock (agentDictionary)
+            {
+                return
+                    agentDictionary.Values
+                    .ToList()                                            // for thread safety
+                    .Select(a => (AbstractPerson)a)
+                    .Where(p => p.currentContainerId == containerId);
+            }
         }
 
         // Finds contained to be moved to another worker

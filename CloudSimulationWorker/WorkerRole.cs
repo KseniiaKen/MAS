@@ -101,6 +101,8 @@ namespace CloudSimulationWorker
 
         private void onClearMessage(Message message)
         {
+            AgentManagementSystem.finishFlag = true;
+            AgentManagementSystem.NextTimeEvent.Set();
             GlobalAgentDescriptorTable.DeleteAllAgents();
             GlobalTime.Time = 0; ;
         }
@@ -129,26 +131,35 @@ namespace CloudSimulationWorker
             ThreadPool.QueueUserWorkItem((obj) =>
             {
                 StartMessage smessage = (StartMessage)message;
+                AgentManagementSystem.finishFlag = false;
                 Trace.TraceInformation("Started. System Info: Agents: {0}; Containers: {1}; Workers: {2}", smessage.totalAgents, smessage.totalContainers, smessage.totalWorkers);
                 AgentManagementSystem.totalAgents = smessage.totalAgents;
                 AgentManagementSystem.totalContainers = smessage.totalContainers;
                 AgentManagementSystem.totalWorkers = smessage.totalWorkers;
                 AgentManagementSystem.RunAgents();
-                Trace.TraceInformation("Results:\nSusceptible: {0}\nRecovered: {3}\nInfectious: {5}\nFuneral: {1}\nDead: {2}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
-                        AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time, AgentManagementSystem.infectiousAgentsCount);
+                if (!AgentManagementSystem.finishFlag) // Process was stopped manually. No need for result sending
+                {                    
+                    Trace.TraceInformation("Results:\nSusceptible: {0}\nRecovered: {3}\nInfectious: {5}\nFuneral: {1}\nDead: {2}\nTime: {4}", AgentManagementSystem.susceptibleAgentsCount, AgentManagementSystem.funeralAgentsCount,
+                            AgentManagementSystem.deadAgentsCount, AgentManagementSystem.recoveredAgentsCount, GlobalTime.Time, AgentManagementSystem.infectiousAgentsCount);
 
-                ResultsMessage msg = new ResultsMessage(
-                    MessageTransportSystem.Instance.Id,
-                    AgentManagementSystem.susceptibleAgentsCount,
-                    AgentManagementSystem.recoveredAgentsCount,
-                    AgentManagementSystem.infectiousAgentsCount,
-                    AgentManagementSystem.funeralAgentsCount,
-                    AgentManagementSystem.deadAgentsCount,
-                    AgentManagementSystem.exposedAgentsCount,
-                    GlobalTime.Time
-                );
-                MessageTransportSystem.Instance.SendMessage(msg);
+                    ResultsMessage msg = new ResultsMessage(
+                        MessageTransportSystem.Instance.Id,
+                        AgentManagementSystem.susceptibleAgentsCount,
+                        AgentManagementSystem.recoveredAgentsCount,
+                        AgentManagementSystem.infectiousAgentsCount,
+                        AgentManagementSystem.funeralAgentsCount,
+                        AgentManagementSystem.deadAgentsCount,
+                        AgentManagementSystem.exposedAgentsCount,
+                        GlobalTime.Time
+                    );
+                    MessageTransportSystem.Instance.SendMessage(msg);
+                }
+                else
+                {
+                    Trace.TraceInformation("Process was stopped manually. No need for result sending");
+                }
 
+                AgentManagementSystem.finishFlag = false;
                 isFinished = true;
             });
         }
